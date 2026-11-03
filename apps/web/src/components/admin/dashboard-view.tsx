@@ -80,17 +80,17 @@ export function DashboardView() {
 
       <div className="mt-4 grid gap-4 xl:grid-cols-[1fr_360px]">
         <Card className="min-w-0">
-          <CardHeader>
-            <CardTitle>Últimos 30 dias</CardTitle>
-            <CardDescription>{metric === "appointments" ? "Agendamentos por dia (exceto cancelados)" : "Faturamento realizado por dia"}</CardDescription>
-            <CardAction>
-              <Tabs value={metric} onValueChange={(v) => setMetric(v as typeof metric)}>
-                <TabsList className="h-9">
-                  <TabsTrigger value="appointments" className="text-xs">Agendamentos</TabsTrigger>
-                  <TabsTrigger value="revenueCents" className="text-xs">Faturamento</TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </CardAction>
+          <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="grid gap-1.5">
+              <CardTitle>Últimos 30 dias</CardTitle>
+              <CardDescription>{metric === "appointments" ? "Agendamentos por dia (exceto cancelados)" : "Faturamento realizado por dia"}</CardDescription>
+            </div>
+            <Tabs value={metric} onValueChange={(v) => setMetric(v as typeof metric)}>
+              <TabsList className="h-9">
+                <TabsTrigger value="appointments" className="text-xs">Agendamentos</TabsTrigger>
+                <TabsTrigger value="revenueCents" className="text-xs">Faturamento</TabsTrigger>
+              </TabsList>
+            </Tabs>
           </CardHeader>
           <CardContent className="px-2 sm:px-6">
             {d ? (

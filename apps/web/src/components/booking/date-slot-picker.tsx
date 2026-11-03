@@ -68,7 +68,7 @@ export function DateSlotPicker({
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[auto_1fr]">
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[auto_minmax(0,1fr)]">
       <div className="mx-auto w-full max-w-sm rounded-2xl border bg-card p-1 sm:p-2 lg:mx-0">
         {days.isLoading ? (
           <div className="space-y-3 p-3">
