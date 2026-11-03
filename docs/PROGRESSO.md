@@ -23,8 +23,14 @@ Arquivo vivo: o que já foi feito e o que falta. Atualizado ao fim de cada fase.
 - [x] Página do negócio, stepper de agendamento (5 etapas), sucesso (.ics, Google Agenda), "Meu agendamento"
       (cancelar/remarcar), estados de carregamento/vazio/erro, mobile-first
 
-## Fase 3 — Painel
-- [ ] Login com acesso de demonstração, layout, dashboard, agenda, cadastros, clientes, configurações
+## Fase 3 — Painel ✅
+- [x] `src/proxy.ts` (Next 16) protege `/admin/*`; login com caixa "Acesso de demonstração"
+- [x] Layout com sidebar (Sheet no celular), tema claro/escuro, menu por papel
+- [x] Dashboard: métricas, gráfico de 30 dias (Chart/Recharts), serviços mais vendidos, próximos
+- [x] Agenda dia (colunas por profissional) e semana, bloqueios, linha do "agora", detalhes com
+      confirmar/concluir/faltou/cancelar e "Lembrar no WhatsApp", agendamento manual
+- [x] Serviços, Profissionais (expediente multi-intervalo + bloqueios), Clientes (busca, histórico,
+      observações), Configurações + feriados (só OWNER)
 
 ## Fase 4 — Acabamento
 - [ ] Prints 375px/1440px, revisão visual, E2E pelo navegador
