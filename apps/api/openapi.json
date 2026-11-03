@@ -189,6 +189,31 @@
         ]
       }
     },
+    "/professionals": {
+      "get": {
+        "operationId": "Public_team",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PublicProfessionalDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Equipe (profissionais ativos)",
+        "tags": [
+          "Público"
+        ]
+      }
+    },
     "/services/{serviceId}/professionals": {
       "get": {
         "operationId": "Public_professionals",

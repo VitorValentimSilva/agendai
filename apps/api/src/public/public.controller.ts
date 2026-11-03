@@ -69,6 +69,18 @@ export class PublicController {
     });
   }
 
+  @Get('professionals')
+  @ApiOperation({ summary: 'Equipe (profissionais ativos)' })
+  @ApiOkResponse({ type: [PublicProfessionalDto] })
+  async team(): Promise<PublicProfessionalDto[]> {
+    const b = await this.businesses.getPublicBusiness();
+    return this.prisma.professional.findMany({
+      where: { businessId: b.id, active: true },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      select: { id: true, name: true, bio: true, avatarUrl: true },
+    });
+  }
+
   @Get('services/:serviceId/professionals')
   @ApiOperation({ summary: 'Profissionais que fazem o serviço' })
   @ApiOkResponse({ type: [PublicProfessionalDto] })
