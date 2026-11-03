@@ -17,9 +17,11 @@ Arquivo vivo: o que já foi feito e o que falta. Atualizado ao fim de cada fase.
 - [x] Swagger em `/docs` (assets por CDN) e `/openapi.json`
 - [x] Testes: unitários (motor, status, .ics) e e2e (fluxo, permissões, concorrência 10×)
 
-## Fase 2 — Site público
-- [ ] Next.js + Tailwind + shadcn/ui, tema escuro com dourado
-- [ ] Página do negócio, stepper de agendamento, sucesso, "Meu agendamento"
+## Fase 2 — Site público ✅
+- [x] Next.js 16 + Tailwind 4 + shadcn/ui (componentes escritos no padrão shadcn), tema escuro com dourado
+- [x] Tipos da API gerados do OpenAPI (`npm run gen:api`) + client `openapi-fetch`; rewrite `/api/*`
+- [x] Página do negócio, stepper de agendamento (5 etapas), sucesso (.ics, Google Agenda), "Meu agendamento"
+      (cancelar/remarcar), estados de carregamento/vazio/erro, mobile-first
 
 ## Fase 3 — Painel
 - [ ] Login com acesso de demonstração, layout, dashboard, agenda, cadastros, clientes, configurações
