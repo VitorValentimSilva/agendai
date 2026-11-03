@@ -14,6 +14,21 @@ Dois apps independentes, sem workspaces e sem pacote compartilhado — cada um f
 - `npm run lint` (oxlint type-aware) · `npm run typecheck` · `npm run build`.
 - `npx prisma migrate dev` · `npm run db:seed` (recria a demo) · `npm run openapi` (gera `openapi.json`).
 
+## Comandos (web, em `apps/web`)
+- `npm run dev` — site em http://localhost:3000 (precisa da API; `API_URL` no `.env.local`).
+- `npm run lint` · `npm run typecheck` · `npm run build`.
+- `npm run gen:api` — regenera `src/lib/api/schema.d.ts` do OpenAPI (rode após mudar DTOs da API e commite o arquivo).
+- `npm run screenshots` / `npm run e2e:browser` — puppeteer-core com `CHROME_PATH` (API + web rodando).
+
+## Web — pontos de atenção (Next 16)
+- Middleware se chama `src/proxy.ts`. `cacheComponents` está ligado: não leia `Date.now()`/`new Date()` durante o
+  prerender de componentes (use dentro de dados carregados no cliente, efeitos ou `useNow`); `useSearchParams`/`useParams`
+  em client components precisam de `<Suspense>` na página.
+- Componentes shadcn/ui ficam em `src/components/ui` (escritos à mão; o registry não é acessível nesta máquina).
+- Tema por tokens em `src/app/globals.css` (`--gold`, `--primary`...). Datas/moeda via `src/lib/format.ts` (pt-BR, fuso do negócio).
+- React Compiler: evite `form.watch()` (use `useWatch`) e `useMemo` manual com dependências instáveis.
+- Dados via TanStack Query (`src/hooks/use-public.ts`, `src/hooks/use-admin.ts`) + `unwrap()` de `src/lib/api/client.ts`.
+
 ## Convenções
 - Imports relativos com sufixo `.js` (ESM/nodenext). TypeScript estrito.
 - Datas: tudo em UTC no banco (`timestamptz`); regras no fuso do negócio (`Business.timezone`).

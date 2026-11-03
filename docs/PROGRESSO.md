@@ -32,6 +32,12 @@ Arquivo vivo: o que já foi feito e o que falta. Atualizado ao fim de cada fase.
 - [x] Serviços, Profissionais (expediente multi-intervalo + bloqueios), Clientes (busca, histórico,
       observações), Configurações + feriados (só OWNER)
 
-## Fase 4 — Acabamento
-- [ ] Prints 375px/1440px, revisão visual, E2E pelo navegador
-- [ ] README completo, CLAUDE.md, guia de deploy (Vercel + Neon)
+## Fase 4 — Acabamento ✅
+- [x] Prints 375px/1440px em `docs/screenshots` (`npm run screenshots`), revisados e corrigidos
+      (estouro horizontal no mobile, cabeçalho do gráfico, contraste do "fora do expediente")
+- [x] E2E pelo navegador (`npm run e2e:browser`): agenda pelo site e confere na API e na agenda do painel
+- [x] README completo, CLAUDE.md, guia de deploy (Vercel + Neon)
+
+## Pendências / ideias
+- Preencher o link da demo no README após o deploy.
+- Ver "Limitações conhecidas e próximos passos" no README.
