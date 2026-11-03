@@ -1,0 +1,2969 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/internal/reset-demo": {
+      "post": {
+        "operationId": "Internal_resetPost",
+        "parameters": [
+          {
+            "name": "authorization",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResetDemoResultDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Apaga e recria os dados de demonstração (Authorization: Bearer CRON_SECRET)",
+        "tags": [
+          "Interno"
+        ]
+      },
+      "get": {
+        "operationId": "Internal_resetGet",
+        "parameters": [
+          {
+            "name": "authorization",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResetDemoResultDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mesmo que o POST — usado pelo Cron da Vercel",
+        "tags": [
+          "Interno"
+        ]
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "operationId": "Auth_login",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Painel — autenticação"
+        ]
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "operationId": "Auth_logout",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Painel — autenticação"
+        ]
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "operationId": "Auth_me",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "tags": [
+          "Painel — autenticação"
+        ]
+      }
+    },
+    "/business": {
+      "get": {
+        "operationId": "Public_business",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicBusinessDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Dados públicos do negócio",
+        "tags": [
+          "Público"
+        ]
+      }
+    },
+    "/services": {
+      "get": {
+        "operationId": "Public_services",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PublicServiceDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Serviços ativos",
+        "tags": [
+          "Público"
+        ]
+      }
+    },
+    "/professionals": {
+      "get": {
+        "operationId": "Public_team",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PublicProfessionalDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Equipe (profissionais ativos)",
+        "tags": [
+          "Público"
+        ]
+      }
+    },
+    "/services/{serviceId}/professionals": {
+      "get": {
+        "operationId": "Public_professionals",
+        "parameters": [
+          {
+            "name": "serviceId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PublicProfessionalDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Profissionais que fazem o serviço",
+        "tags": [
+          "Público"
+        ]
+      }
+    },
+    "/availability": {
+      "get": {
+        "operationId": "Public_slots",
+        "parameters": [
+          {
+            "name": "serviceId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "professionalId",
+            "required": true,
+            "in": "query",
+            "description": "ID do profissional ou \"any\".",
+            "schema": {
+              "example": "any",
+              "type": "string"
+            }
+          },
+          {
+            "name": "date",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "2026-11-04",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvailabilityDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Horários livres em uma data (fuso do negócio)",
+        "tags": [
+          "Público"
+        ]
+      }
+    },
+    "/availability/days": {
+      "get": {
+        "operationId": "Public_days",
+        "parameters": [
+          {
+            "name": "serviceId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "professionalId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "any",
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "2026-11-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "2026-11-30",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvailableDaysDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Dias com pelo menos um horário livre (para o calendário)",
+        "tags": [
+          "Público"
+        ]
+      }
+    },
+    "/appointments": {
+      "post": {
+        "operationId": "Public_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAppointmentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedAppointmentDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Horário indisponível ou reservado por outra pessoa"
+          }
+        },
+        "summary": "Criar agendamento (cliente)",
+        "tags": [
+          "Público"
+        ]
+      }
+    },
+    "/appointments/manage/{token}": {
+      "get": {
+        "operationId": "Public_byToken",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicAppointmentDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Ver agendamento pelo token",
+        "tags": [
+          "Público"
+        ]
+      }
+    },
+    "/appointments/manage/{token}/cancel": {
+      "post": {
+        "operationId": "Public_cancel",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicAppointmentDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Cancelar pelo token (respeita a política de cancelamento)",
+        "tags": [
+          "Público"
+        ]
+      }
+    },
+    "/appointments/manage/{token}/reschedule": {
+      "post": {
+        "operationId": "Public_reschedule",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RescheduleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicAppointmentDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Remarcar pelo token (mesmo serviço e profissional)",
+        "tags": [
+          "Público"
+        ]
+      }
+    },
+    "/appointments/manage/{token}/ics": {
+      "get": {
+        "operationId": "Public_ics",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Baixar o agendamento em .ics",
+        "tags": [
+          "Público"
+        ]
+      }
+    },
+    "/admin/dashboard": {
+      "get": {
+        "operationId": "Agenda_getDashboard",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão"
+          },
+          "403": {
+            "description": "Sem permissão para o papel atual"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Métricas do painel (no papel PROFESSIONAL, só a própria agenda)",
+        "tags": [
+          "Painel — agenda"
+        ]
+      }
+    },
+    "/admin/appointments": {
+      "get": {
+        "operationId": "Agenda_agenda",
+        "parameters": [
+          {
+            "name": "from",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "2026-11-03",
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "2026-11-09",
+              "type": "string"
+            }
+          },
+          {
+            "name": "professionalId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgendaDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão"
+          },
+          "403": {
+            "description": "Sem permissão para o papel atual"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Agenda entre duas datas (inclusive), no fuso do negócio",
+        "tags": [
+          "Painel — agenda"
+        ]
+      },
+      "post": {
+        "operationId": "Agenda_manual",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManualAppointmentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminAppointmentDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão"
+          },
+          "403": {
+            "description": "Sem permissão para o papel atual"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Agendamento manual (balcão/telefone). Ignora antecedência mínima.",
+        "tags": [
+          "Painel — agenda"
+        ]
+      }
+    },
+    "/admin/appointments/{id}": {
+      "get": {
+        "operationId": "Agenda_one",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminAppointmentDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão"
+          },
+          "403": {
+            "description": "Sem permissão para o papel atual"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "tags": [
+          "Painel — agenda"
+        ]
+      }
+    },
+    "/admin/appointments/{id}/status": {
+      "patch": {
+        "operationId": "Agenda_status",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStatusDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminAppointmentDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão"
+          },
+          "403": {
+            "description": "Sem permissão para o papel atual"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Mudar status (confirmar, concluir, faltou, cancelar)",
+        "tags": [
+          "Painel — agenda"
+        ]
+      }
+    },
+    "/admin/availability": {
+      "get": {
+        "operationId": "Agenda_slots",
+        "parameters": [
+          {
+            "name": "serviceId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "professionalId",
+            "required": true,
+            "in": "query",
+            "description": "ID do profissional ou \"any\".",
+            "schema": {
+              "example": "any",
+              "type": "string"
+            }
+          },
+          {
+            "name": "date",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "2026-11-04",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvailabilityDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão"
+          },
+          "403": {
+            "description": "Sem permissão para o papel atual"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Horários livres para agendamento manual (sem antecedência mínima)",
+        "tags": [
+          "Painel — agenda"
+        ]
+      }
+    },
+    "/admin/services": {
+      "get": {
+        "operationId": "Catalog_listServices",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdminServiceDto"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão"
+          },
+          "403": {
+            "description": "Sem permissão para o papel atual"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "tags": [
+          "Painel — cadastros"
+        ]
+      },
+      "post": {
+        "operationId": "Catalog_createService",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ServiceInputDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminServiceDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão"
+          },
+          "403": {
+            "description": "Sem permissão para o papel atual"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "tags": [
+          "Painel — cadastros"
+        ]
+      }
+    },
+    "/admin/services/{id}": {
+      "patch": {
+        "operationId": "Catalog_updateService",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateServiceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminServiceDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão"
+          },
+          "403": {
+            "description": "Sem permissão para o papel atual"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "tags": [
+          "Painel — cadastros"
+        ]
+      },
+      "delete": {
+        "operationId": "Catalog_deleteService",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "401": {
+            "description": "Sem sessão"
+          },
+          "403": {
+            "description": "Sem permissão para o papel atual"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Remove o serviço (ou só desativa, se já houver agendamentos)",
+        "tags": [
+          "Painel — cadastros"
+        ]
+      }
+    },
+    "/admin/professionals": {
+      "get": {
+        "operationId": "Catalog_listProfessionals",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdminProfessionalDto"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão"
+          },
+          "403": {
+            "description": "Sem permissão para o papel atual"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "tags": [
+          "Painel — cadastros"
+        ]
+      },
+      "post": {
+        "operationId": "Catalog_createProfessional",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProfessionalInputDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminProfessionalDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão"
+          },
+          "403": {
+            "description": "Sem permissão para o papel atual"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "tags": [
+          "Painel — cadastros"
+        ]
+      }
+    },
+    "/admin/professionals/{id}": {
+      "patch": {
+        "operationId": "Catalog_updateProfessional",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProfessionalDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminProfessionalDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão"
+          },
+          "403": {
+            "description": "Sem permissão para o papel atual"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "tags": [
+          "Painel — cadastros"
+        ]
+      },
+      "delete": {
+        "operationId": "Catalog_deleteProfessional",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "401": {
+            "description": "Sem sessão"
+          },
+          "403": {
+            "description": "Sem permissão para o papel atual"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Remove o profissional (ou só desativa, se já houver agendamentos)",
+        "tags": [
+          "Painel — cadastros"
+        ]
+      }
+    },
+    "/admin/professionals/{id}/working-hours": {
+      "put": {
+        "operationId": "Catalog_setWorkingHours",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkingHoursInputDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminProfessionalDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão"
+          },
+          "403": {
+            "description": "Sem permissão para o papel atual"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Substitui o expediente semanal (vários intervalos por dia)",
+        "tags": [
+          "Painel — cadastros"
+        ]
+      }
+    },
+    "/admin/time-offs": {
+      "get": {
+        "operationId": "Catalog_listTimeOffs",
+        "parameters": [
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "2026-11-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "2026-12-31",
+              "type": "string"
+            }
+          },
+          {
+            "name": "professionalId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TimeOffDto"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão"
+          },
+          "403": {
+            "description": "Sem permissão para o papel atual"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "tags": [
+          "Painel — cadastros"
+        ]
+      },
+      "post": {
+        "operationId": "Catalog_createTimeOff",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TimeOffInputDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TimeOffDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão"
+          },
+          "403": {
+            "description": "Sem permissão para o papel atual"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Cria bloqueio (sem profissional = negócio inteiro, só OWNER)",
+        "tags": [
+          "Painel — cadastros"
+        ]
+      }
+    },
+    "/admin/time-offs/{id}": {
+      "delete": {
+        "operationId": "Catalog_deleteTimeOff",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "401": {
+            "description": "Sem sessão"
+          },
+          "403": {
+            "description": "Sem permissão para o papel atual"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "tags": [
+          "Painel — cadastros"
+        ]
+      }
+    },
+    "/admin/customers": {
+      "get": {
+        "operationId": "Customers_list",
+        "parameters": [
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": 20,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerPageDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão"
+          },
+          "403": {
+            "description": "Sem permissão para o papel atual"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "tags": [
+          "Painel — clientes"
+        ]
+      }
+    },
+    "/admin/customers/{id}": {
+      "get": {
+        "operationId": "Customers_detail",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerDetailDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão"
+          },
+          "403": {
+            "description": "Sem permissão para o papel atual"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "tags": [
+          "Painel — clientes"
+        ]
+      },
+      "patch": {
+        "operationId": "Customers_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCustomerDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerDetailDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão"
+          },
+          "403": {
+            "description": "Sem permissão para o papel atual"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "tags": [
+          "Painel — clientes"
+        ]
+      }
+    },
+    "/admin/business": {
+      "get": {
+        "operationId": "Settings_get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessSettingsDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão"
+          },
+          "403": {
+            "description": "Sem permissão para o papel atual"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "tags": [
+          "Painel — configurações"
+        ]
+      },
+      "patch": {
+        "operationId": "Settings_update",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateBusinessDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessSettingsDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão"
+          },
+          "403": {
+            "description": "Sem permissão para o papel atual"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "tags": [
+          "Painel — configurações"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Agendaí API",
+    "description": "API do Agendaí — agendamento online white-label. Rotas públicas (cliente) e do painel (cookie httpOnly após /auth/login).",
+    "version": "1.0.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "cookie": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "agendai_session"
+      },
+      "bearer": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http"
+      }
+    },
+    "schemas": {
+      "ResetDemoResultDto": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "appointments": {
+            "type": "number"
+          },
+          "customers": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "ok",
+          "appointments",
+          "customers"
+        ]
+      },
+      "LoginDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "demo@agendai.app"
+          },
+          "password": {
+            "type": "string",
+            "example": "demo1234"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "MeDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "OWNER",
+              "PROFESSIONAL"
+            ]
+          },
+          "professionalId": {
+            "type": "string",
+            "nullable": true
+          },
+          "businessId": {
+            "type": "string"
+          },
+          "businessName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "email",
+          "role",
+          "professionalId",
+          "businessId",
+          "businessName"
+        ]
+      },
+      "OpeningIntervalDto": {
+        "type": "object",
+        "properties": {
+          "start": {
+            "type": "number",
+            "description": "Minutos desde 00:00"
+          },
+          "end": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "start",
+          "end"
+        ]
+      },
+      "OpeningHoursDto": {
+        "type": "object",
+        "properties": {
+          "weekday": {
+            "type": "number",
+            "description": "0 = domingo"
+          },
+          "intervals": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OpeningIntervalDto"
+            }
+          }
+        },
+        "required": [
+          "weekday",
+          "intervals"
+        ]
+      },
+      "PublicBusinessDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "phone": {
+            "type": "string"
+          },
+          "whatsapp": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "instagram": {
+            "type": "string",
+            "nullable": true
+          },
+          "addressLine": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "slotIntervalMinutes": {
+            "type": "number"
+          },
+          "minAdvanceMinutes": {
+            "type": "number"
+          },
+          "maxAdvanceDays": {
+            "type": "number"
+          },
+          "cancellationPolicyHours": {
+            "type": "number"
+          },
+          "openingHours": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OpeningHoursDto"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "slug",
+          "description",
+          "phone",
+          "whatsapp",
+          "email",
+          "instagram",
+          "addressLine",
+          "city",
+          "state",
+          "timezone",
+          "slotIntervalMinutes",
+          "minAdvanceMinutes",
+          "maxAdvanceDays",
+          "cancellationPolicyHours",
+          "openingHours"
+        ]
+      },
+      "PublicServiceDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "durationMinutes": {
+            "type": "number"
+          },
+          "priceCents": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "durationMinutes",
+          "priceCents"
+        ]
+      },
+      "PublicProfessionalDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "bio": {
+            "type": "string",
+            "nullable": true
+          },
+          "avatarUrl": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "bio",
+          "avatarUrl"
+        ]
+      },
+      "SlotDto": {
+        "type": "object",
+        "properties": {
+          "start": {
+            "type": "string",
+            "description": "Início em ISO (UTC)"
+          },
+          "end": {
+            "type": "string"
+          },
+          "time": {
+            "type": "string",
+            "example": "09:30",
+            "description": "Horário no fuso do negócio"
+          },
+          "professionalIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "start",
+          "end",
+          "time",
+          "professionalIds"
+        ]
+      },
+      "AvailabilityDto": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "slots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SlotDto"
+            }
+          }
+        },
+        "required": [
+          "date",
+          "timezone",
+          "slots"
+        ]
+      },
+      "AvailableDaysDto": {
+        "type": "object",
+        "properties": {
+          "days": {
+            "example": [
+              "2026-11-04",
+              "2026-11-05"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "days"
+        ]
+      },
+      "CustomerInputDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "João da Silva"
+          },
+          "whatsapp": {
+            "type": "string",
+            "example": "(19) 99999-0000",
+            "description": "WhatsApp com DDD; aceita máscara."
+          },
+          "email": {
+            "type": "string",
+            "example": "joao@email.com"
+          }
+        },
+        "required": [
+          "name",
+          "whatsapp"
+        ]
+      },
+      "CreateAppointmentDto": {
+        "type": "object",
+        "properties": {
+          "serviceId": {
+            "type": "string"
+          },
+          "professionalId": {
+            "type": "string",
+            "description": "ID do profissional ou \"any\" para qualquer um.",
+            "example": "any"
+          },
+          "startsAt": {
+            "type": "string",
+            "example": "2026-11-04T12:00:00.000Z",
+            "description": "Início em ISO 8601 (UTC)."
+          },
+          "customer": {
+            "$ref": "#/components/schemas/CustomerInputDto"
+          },
+          "notes": {
+            "type": "string",
+            "example": "Prefiro máquina 2 nas laterais."
+          }
+        },
+        "required": [
+          "serviceId",
+          "professionalId",
+          "startsAt",
+          "customer"
+        ]
+      },
+      "AppointmentStatus": {
+        "type": "string",
+        "enum": [
+          "SCHEDULED",
+          "CONFIRMED",
+          "COMPLETED",
+          "CANCELED",
+          "NO_SHOW"
+        ]
+      },
+      "AppointmentServiceRefDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "durationMinutes": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "durationMinutes"
+        ]
+      },
+      "AppointmentProfessionalRefDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "avatarUrl": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "avatarUrl"
+        ]
+      },
+      "PublicBusinessRefDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string"
+          },
+          "whatsapp": {
+            "type": "string"
+          },
+          "cancellationPolicyHours": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "name",
+          "timezone",
+          "address",
+          "whatsapp",
+          "cancellationPolicyHours"
+        ]
+      },
+      "ManageInfoDto": {
+        "type": "object",
+        "properties": {
+          "canChange": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "deadline": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "canChange",
+          "reason",
+          "deadline"
+        ]
+      },
+      "CreatedAppointmentDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AppointmentStatus"
+              }
+            ]
+          },
+          "startsAt": {
+            "type": "string"
+          },
+          "endsAt": {
+            "type": "string"
+          },
+          "priceCents": {
+            "type": "number"
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "service": {
+            "$ref": "#/components/schemas/AppointmentServiceRefDto"
+          },
+          "professional": {
+            "$ref": "#/components/schemas/AppointmentProfessionalRefDto"
+          },
+          "customerName": {
+            "type": "string"
+          },
+          "business": {
+            "$ref": "#/components/schemas/PublicBusinessRefDto"
+          },
+          "manage": {
+            "$ref": "#/components/schemas/ManageInfoDto"
+          },
+          "manageToken": {
+            "type": "string",
+            "description": "Token secreto para o cliente gerenciar o agendamento."
+          }
+        },
+        "required": [
+          "code",
+          "status",
+          "startsAt",
+          "endsAt",
+          "priceCents",
+          "notes",
+          "service",
+          "professional",
+          "customerName",
+          "business",
+          "manage",
+          "manageToken"
+        ]
+      },
+      "PublicAppointmentDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AppointmentStatus"
+              }
+            ]
+          },
+          "startsAt": {
+            "type": "string"
+          },
+          "endsAt": {
+            "type": "string"
+          },
+          "priceCents": {
+            "type": "number"
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "service": {
+            "$ref": "#/components/schemas/AppointmentServiceRefDto"
+          },
+          "professional": {
+            "$ref": "#/components/schemas/AppointmentProfessionalRefDto"
+          },
+          "customerName": {
+            "type": "string"
+          },
+          "business": {
+            "$ref": "#/components/schemas/PublicBusinessRefDto"
+          },
+          "manage": {
+            "$ref": "#/components/schemas/ManageInfoDto"
+          }
+        },
+        "required": [
+          "code",
+          "status",
+          "startsAt",
+          "endsAt",
+          "priceCents",
+          "notes",
+          "service",
+          "professional",
+          "customerName",
+          "business",
+          "manage"
+        ]
+      },
+      "RescheduleDto": {
+        "type": "object",
+        "properties": {
+          "startsAt": {
+            "type": "string",
+            "example": "2026-11-05T13:00:00.000Z"
+          }
+        },
+        "required": [
+          "startsAt"
+        ]
+      },
+      "TopServiceDto": {
+        "type": "object",
+        "properties": {
+          "serviceId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "count": {
+            "type": "number"
+          },
+          "revenueCents": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "serviceId",
+          "name",
+          "count",
+          "revenueCents"
+        ]
+      },
+      "DashboardSeriesPointDto": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string"
+          },
+          "appointments": {
+            "type": "number"
+          },
+          "revenueCents": {
+            "type": "number",
+            "description": "Faturamento realizado (concluídos) em centavos"
+          }
+        },
+        "required": [
+          "date",
+          "appointments",
+          "revenueCents"
+        ]
+      },
+      "AppointmentCustomerRefDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "whatsapp": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "whatsapp",
+          "email"
+        ]
+      },
+      "AdminAppointmentDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AppointmentStatus"
+              }
+            ]
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "ONLINE",
+              "MANUAL"
+            ]
+          },
+          "startsAt": {
+            "type": "string"
+          },
+          "endsAt": {
+            "type": "string"
+          },
+          "priceCents": {
+            "type": "number"
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "service": {
+            "$ref": "#/components/schemas/AppointmentServiceRefDto"
+          },
+          "professional": {
+            "$ref": "#/components/schemas/AppointmentProfessionalRefDto"
+          },
+          "customer": {
+            "$ref": "#/components/schemas/AppointmentCustomerRefDto"
+          },
+          "manageToken": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "status",
+          "source",
+          "startsAt",
+          "endsAt",
+          "priceCents",
+          "notes",
+          "service",
+          "professional",
+          "customer",
+          "manageToken",
+          "createdAt"
+        ]
+      },
+      "DashboardDto": {
+        "type": "object",
+        "properties": {
+          "timezone": {
+            "type": "string"
+          },
+          "today": {
+            "type": "string"
+          },
+          "appointmentsToday": {
+            "type": "number"
+          },
+          "appointmentsWeek": {
+            "type": "number"
+          },
+          "expectedRevenueMonthCents": {
+            "type": "number"
+          },
+          "realizedRevenueMonthCents": {
+            "type": "number"
+          },
+          "cancellationRate": {
+            "type": "number",
+            "description": "0..1, últimos 30 dias"
+          },
+          "noShowRate": {
+            "type": "number",
+            "description": "0..1, últimos 30 dias"
+          },
+          "topServices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TopServiceDto"
+            }
+          },
+          "series": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DashboardSeriesPointDto"
+            }
+          },
+          "upcoming": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminAppointmentDto"
+            }
+          }
+        },
+        "required": [
+          "timezone",
+          "today",
+          "appointmentsToday",
+          "appointmentsWeek",
+          "expectedRevenueMonthCents",
+          "realizedRevenueMonthCents",
+          "cancellationRate",
+          "noShowRate",
+          "topServices",
+          "series",
+          "upcoming"
+        ]
+      },
+      "TimeOffDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "professionalId": {
+            "type": "string",
+            "nullable": true
+          },
+          "startsAt": {
+            "type": "string"
+          },
+          "endsAt": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "professionalId",
+          "startsAt",
+          "endsAt",
+          "reason"
+        ]
+      },
+      "AgendaDto": {
+        "type": "object",
+        "properties": {
+          "timezone": {
+            "type": "string"
+          },
+          "appointments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminAppointmentDto"
+            }
+          },
+          "timeOffs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TimeOffDto"
+            }
+          }
+        },
+        "required": [
+          "timezone",
+          "appointments",
+          "timeOffs"
+        ]
+      },
+      "ManualAppointmentDto": {
+        "type": "object",
+        "properties": {
+          "serviceId": {
+            "type": "string"
+          },
+          "professionalId": {
+            "type": "string",
+            "description": "ID do profissional ou \"any\""
+          },
+          "startsAt": {
+            "type": "string"
+          },
+          "customer": {
+            "$ref": "#/components/schemas/CustomerInputDto"
+          },
+          "notes": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "serviceId",
+          "professionalId",
+          "startsAt",
+          "customer"
+        ]
+      },
+      "UpdateStatusDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AppointmentStatus"
+              }
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "AdminServiceDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "durationMinutes": {
+            "type": "number"
+          },
+          "priceCents": {
+            "type": "number"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "professionalIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "durationMinutes",
+          "priceCents",
+          "active",
+          "professionalIds"
+        ]
+      },
+      "ServiceInputDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "durationMinutes": {
+            "type": "number"
+          },
+          "priceCents": {
+            "type": "number",
+            "description": "Preço em centavos"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "professionalIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "durationMinutes",
+          "priceCents"
+        ]
+      },
+      "UpdateServiceDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "durationMinutes": {
+            "type": "number"
+          },
+          "priceCents": {
+            "type": "number",
+            "description": "Preço em centavos"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "professionalIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "WorkingHoursItemDto": {
+        "type": "object",
+        "properties": {
+          "weekday": {
+            "type": "number",
+            "description": "0 = domingo"
+          },
+          "startMinute": {
+            "type": "number",
+            "description": "Minutos desde 00:00"
+          },
+          "endMinute": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "weekday",
+          "startMinute",
+          "endMinute"
+        ]
+      },
+      "AdminProfessionalDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "bio": {
+            "type": "string",
+            "nullable": true
+          },
+          "avatarUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "serviceIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "workingHours": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkingHoursItemDto"
+            }
+          },
+          "userEmail": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "bio",
+          "avatarUrl",
+          "active",
+          "serviceIds",
+          "workingHours",
+          "userEmail"
+        ]
+      },
+      "ProfessionalInputDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "bio": {
+            "type": "string",
+            "nullable": true
+          },
+          "avatarUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "serviceIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "UpdateProfessionalDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "bio": {
+            "type": "string",
+            "nullable": true
+          },
+          "avatarUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "serviceIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "WorkingHoursInputDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkingHoursItemDto"
+            }
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "TimeOffInputDto": {
+        "type": "object",
+        "properties": {
+          "professionalId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Vazio = negócio inteiro"
+          },
+          "startsAt": {
+            "type": "string"
+          },
+          "endsAt": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "startsAt",
+          "endsAt"
+        ]
+      },
+      "CustomerListItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "whatsapp": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "appointmentsCount": {
+            "type": "number"
+          },
+          "lastVisitAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "nextAppointmentAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "totalSpentCents": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "whatsapp",
+          "email",
+          "appointmentsCount",
+          "lastVisitAt",
+          "nextAppointmentAt",
+          "totalSpentCents"
+        ]
+      },
+      "CustomerPageDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CustomerListItemDto"
+            }
+          },
+          "total": {
+            "type": "number"
+          },
+          "page": {
+            "type": "number"
+          },
+          "pageSize": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "pageSize"
+        ]
+      },
+      "CustomerDetailDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "whatsapp": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "appointmentsCount": {
+            "type": "number"
+          },
+          "lastVisitAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "nextAppointmentAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "totalSpentCents": {
+            "type": "number"
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "history": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminAppointmentDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "whatsapp",
+          "email",
+          "appointmentsCount",
+          "lastVisitAt",
+          "nextAppointmentAt",
+          "totalSpentCents",
+          "notes",
+          "createdAt",
+          "history"
+        ]
+      },
+      "UpdateCustomerDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "BusinessSettingsDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "phone": {
+            "type": "string"
+          },
+          "whatsapp": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "instagram": {
+            "type": "string",
+            "nullable": true
+          },
+          "addressLine": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "slotIntervalMinutes": {
+            "type": "number"
+          },
+          "minAdvanceMinutes": {
+            "type": "number"
+          },
+          "maxAdvanceDays": {
+            "type": "number"
+          },
+          "cancellationPolicyHours": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "description",
+          "phone",
+          "whatsapp",
+          "email",
+          "instagram",
+          "addressLine",
+          "city",
+          "state",
+          "timezone",
+          "slotIntervalMinutes",
+          "minAdvanceMinutes",
+          "maxAdvanceDays",
+          "cancellationPolicyHours"
+        ]
+      },
+      "UpdateBusinessDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "phone": {
+            "type": "string"
+          },
+          "whatsapp": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "instagram": {
+            "type": "string",
+            "nullable": true
+          },
+          "addressLine": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "slotIntervalMinutes": {
+            "type": "number"
+          },
+          "minAdvanceMinutes": {
+            "type": "number"
+          },
+          "maxAdvanceDays": {
+            "type": "number"
+          },
+          "cancellationPolicyHours": {
+            "type": "number"
+          }
+        }
+      }
+    }
+  }
+}
