@@ -63,3 +63,28 @@ export function initials(name: string): string {
   const parts = name.trim().split(/\s+/);
   return ((parts[0]?.[0] ?? "") + (parts.length > 1 ? (parts.at(-1)?.[0] ?? "") : "")).toUpperCase();
 }
+
+/** Minutos desde 00:00 de um instante, no fuso do negócio. */
+export function minutesInTz(value: string | Date, timezone = DEFAULT_TZ): number {
+  const date = typeof value === "string" ? parseISO(value) : value;
+  const z = new TZDate(date.getTime(), timezone);
+  return z.getHours() * 60 + z.getMinutes();
+}
+
+/** Data (AAAA-MM-DD) de um instante no fuso do negócio. */
+export function isoDateInTz(value: string | Date, timezone = DEFAULT_TZ): string {
+  return formatInTz(value, "yyyy-MM-dd", timezone);
+}
+
+export function addDaysIso(date: string, days: number): string {
+  const d = fromIsoDate(date);
+  d.setDate(d.getDate() + days);
+  return toIsoDate(d);
+}
+
+/** Segunda-feira da semana da data. */
+export function startOfWeekIso(date: string): string {
+  const d = fromIsoDate(date);
+  const diff = (d.getDay() + 6) % 7;
+  return addDaysIso(date, -diff);
+}
