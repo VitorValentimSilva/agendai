@@ -7,6 +7,8 @@ const TRANSITIONS: Record<AppointmentStatus, AppointmentStatus[]> = {
   NO_SHOW: ['COMPLETED'],
   COMPLETED: [],
   CANCELED: [],
+  // Pix pendente: o painel pode confirmar (pagamento recebido por fora) ou cancelar.
+  PENDING_PAYMENT: ['CONFIRMED', 'CANCELED'],
 };
 
 const LABELS: Record<AppointmentStatus, string> = {
@@ -15,6 +17,7 @@ const LABELS: Record<AppointmentStatus, string> = {
   COMPLETED: 'Concluído',
   CANCELED: 'Cancelado',
   NO_SHOW: 'Faltou',
+  PENDING_PAYMENT: 'Aguardando pagamento',
 };
 
 export type TransitionCheck = { ok: true } | { ok: false; reason: string };

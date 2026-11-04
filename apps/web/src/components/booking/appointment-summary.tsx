@@ -11,6 +11,7 @@ export const STATUS_META: Record<Appointment["status"], { label: string; variant
   COMPLETED: { label: "Concluído", variant: "secondary" },
   CANCELED: { label: "Cancelado", variant: "destructive" },
   NO_SHOW: { label: "Não compareceu", variant: "warning" },
+  PENDING_PAYMENT: { label: "Aguardando pagamento", variant: "warning" },
 };
 
 export function StatusBadge({ status }: { status: Appointment["status"] }) {

@@ -8,6 +8,7 @@ export const STATUS_LABEL: Record<Status, string> = {
   COMPLETED: "Concluído",
   CANCELED: "Cancelado",
   NO_SHOW: "Faltou",
+  PENDING_PAYMENT: "Aguardando Pix",
 };
 
 export const STATUS_VARIANT: Record<Status, "info" | "success" | "secondary" | "destructive" | "warning"> = {
@@ -16,6 +17,7 @@ export const STATUS_VARIANT: Record<Status, "info" | "success" | "secondary" | "
   COMPLETED: "secondary",
   CANCELED: "destructive",
   NO_SHOW: "warning",
+  PENDING_PAYMENT: "warning",
 };
 
 /** Classes dos blocos na agenda */
@@ -25,4 +27,5 @@ export const STATUS_BLOCK: Record<Status, string> = {
   COMPLETED: "border-success/40 bg-success/12 hover:bg-success/20",
   CANCELED: "border-destructive/30 bg-destructive/8 opacity-60 line-through decoration-destructive/50 hover:opacity-80",
   NO_SHOW: "border-warning/50 bg-warning/12 hover:bg-warning/20",
+  PENDING_PAYMENT: "border-dashed border-warning/60 bg-warning/8 hover:bg-warning/15",
 };
