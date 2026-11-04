@@ -20,6 +20,8 @@ import {
   PublicBusinessDto,
   PublicProfessionalDto,
   PublicServiceDto,
+  TokenAvailabilityQueryDto,
+  TokenAvailableDaysQueryDto,
 } from './public.dto.js';
 
 @ApiTags('Público')
@@ -144,7 +146,7 @@ export class PublicController {
   async create(@Body() dto: CreateAppointmentDto, @TenantSlug() tenant?: string): Promise<CreatedAppointmentDto> {
     const business = await this.businesses.getPublicBusiness(tenant);
     await this.payments.expireStale();
-    let appointment = await this.appointments.book({ ...dto, business, source: 'ONLINE', holdForPayment: business.paymentMode !== 'NONE' });
+    let appointment = await this.appointments.book({ ...dto, business, source: 'ONLINE', holdForPayment: this.payments.chargesPix(business) });
     if (appointment.status === 'PENDING_PAYMENT') {
       const payment = await this.payments.createForAppointment(appointment, business, this.payments.amountFor(business, appointment.priceCents));
       appointment = { ...appointment, payment };
@@ -168,6 +170,43 @@ export class PublicController {
   async cancel(@Param('token') token: string): Promise<PublicAppointmentDto> {
     const a = await this.appointments.cancelByToken(token);
     return toPublicAppointment(a, await this.businesses.getById(a.businessId));
+  }
+
+  @Get('appointments/manage/:token/availability')
+  @ApiOperation({ summary: 'Horários livres para remarcar (negócio, serviço e profissional do agendamento)' })
+  @ApiOkResponse({ type: AvailabilityDto })
+  async rescheduleSlots(@Param('token') token: string, @Query() q: TokenAvailabilityQueryDto): Promise<AvailabilityDto> {
+    const a = await this.appointments.findByToken(token);
+    const business = await this.businesses.getById(a.businessId);
+    await this.payments.expireStale();
+    const { slots } = await this.availability.slotsForDate(
+      { business, serviceId: a.serviceId, professionalId: a.professionalId, excludeAppointmentId: a.id },
+      parseDateParam(q.date),
+    );
+    return {
+      date: q.date,
+      timezone: business.timezone,
+      slots: slots.map((s) => ({
+        start: s.start.toISOString(),
+        end: s.end.toISOString(),
+        time: formatTime(s.start, business.timezone),
+        professionalIds: s.professionalIds,
+      })),
+    };
+  }
+
+  @Get('appointments/manage/:token/availability/days')
+  @ApiOperation({ summary: 'Dias com horário livre para remarcar' })
+  @ApiOkResponse({ type: AvailableDaysDto })
+  async rescheduleDays(@Param('token') token: string, @Query() q: TokenAvailableDaysQueryDto): Promise<AvailableDaysDto> {
+    const a = await this.appointments.findByToken(token);
+    const business = await this.businesses.getById(a.businessId);
+    const days = await this.availability.availableDays(
+      { business, serviceId: a.serviceId, professionalId: a.professionalId, excludeAppointmentId: a.id },
+      parseDateParam(q.from, 'from'),
+      parseDateParam(q.to, 'to'),
+    );
+    return { days };
   }
 
   @Post('appointments/manage/:token/reschedule')

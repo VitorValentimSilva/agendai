@@ -7,6 +7,7 @@ import { AppointmentsService } from '../appointments/appointments.service.js';
 import type { AppointmentWithRelations } from '../appointments/appointment.mapper.js';
 import { MercadoPagoClient } from './mercadopago.client.js';
 import { amountToCharge } from './payment-rules.js';
+import { DEMO_SLUG } from '../demo/demo-data.js';
 
 export type PixProvider = 'MERCADO_PAGO' | 'SIMULATED';
 
@@ -34,6 +35,20 @@ export class PaymentsService {
 
   providerFor(business: Pick<Business, 'mercadoPagoTokenEnc'>): PixProvider {
     return this.accessTokenFor(business) ? 'MERCADO_PAGO' : 'SIMULATED';
+  }
+
+  /**
+   * Pix simulado só vale na demonstração: em produção, um negócio real sem token do Mercado Pago
+   * deixaria o cliente "simular" o próprio pagamento e confirmar sem pagar.
+   */
+  canSimulate(business: Pick<Business, 'slug'>): boolean {
+    return env.allowSimulations || business.slug === DEMO_SLUG;
+  }
+
+  /** O negócio cobra Pix nos agendamentos online? (exige provedor real fora da demo) */
+  chargesPix(business: Business): boolean {
+    if (business.paymentMode === 'NONE') return false;
+    return this.providerFor(business) === 'MERCADO_PAGO' || this.canSimulate(business);
   }
 
   /** Quanto este agendamento online precisa pagar agora (0 = nada). */
@@ -73,36 +88,46 @@ export class PaymentsService {
       });
     } catch (error) {
       // Sem cobrança não dá para segurar o horário: libera e avisa.
-      await this.appointments.cancel(a.id);
+      await this.appointments.cancel(a.id, new Date(), ['PENDING_PAYMENT']);
       this.logger.error('Falha ao gerar o Pix', error as Error);
       throw new BadGatewayException('Não foi possível gerar o Pix agora. Tente novamente em instantes.');
     }
   }
 
-  /** Cancela agendamentos cujo Pix expirou (libera o horário e avisa a fila de espera). */
+  /**
+   * Cancela agendamentos cujo Pix expirou (libera o horário e avisa a fila de espera).
+   * Cada passo é condicional: se o pagamento for confirmado no meio do caminho, ele vence.
+   */
   async expireStale(now = new Date()): Promise<number> {
     const stale = await this.prisma.payment.findMany({
       where: { status: 'PENDING', expiresAt: { lt: now }, appointment: { status: 'PENDING_PAYMENT' } },
       select: { id: true, appointmentId: true },
       take: 100,
     });
+    let expired = 0;
     for (const p of stale) {
-      await this.prisma.payment.update({ where: { id: p.id }, data: { status: 'EXPIRED' } });
-      await this.appointments.cancel(p.appointmentId, now);
+      const claimed = await this.prisma.payment.updateMany({ where: { id: p.id, status: 'PENDING' }, data: { status: 'EXPIRED' } });
+      if (!claimed.count) continue; // outro processo (webhook/expiração paralela) chegou antes
+      await this.appointments.cancel(p.appointmentId, now, ['PENDING_PAYMENT']);
+      expired++;
     }
-    return stale.length;
+    return expired;
   }
 
-  /** Pagamento confirmado: marca como pago e confirma o agendamento. */
+  /** Pagamento confirmado: marca como pago e confirma o agendamento (idempotente e sem corrida). */
   async markPaid(payment: Payment, now = new Date()): Promise<void> {
-    if (payment.status === 'PAID') return;
-    const appointment = await this.prisma.appointment.findUniqueOrThrow({ where: { id: payment.appointmentId } });
-    await this.prisma.payment.update({ where: { id: payment.id }, data: { status: 'PAID', paidAt: now } });
-    if (appointment.status === 'PENDING_PAYMENT') {
-      await this.appointments.confirm(appointment.id, 'PIX');
-    } else if (appointment.status === 'CANCELED') {
-      // Pagou depois de expirar: o horário pode ter sido ocupado. Fica registrado para estorno manual.
-      this.logger.warn(`Pix pago após cancelamento do agendamento ${appointment.id} — estorno manual necessário.`);
+    const claimed = await this.prisma.payment.updateMany({
+      where: { id: payment.id, status: { not: 'PAID' } },
+      data: { status: 'PAID', paidAt: now },
+    });
+    if (!claimed.count) return; // notificação repetida
+    const confirmed = await this.appointments.confirm(payment.appointmentId, 'PIX', ['PENDING_PAYMENT']);
+    if (!confirmed) {
+      const appointment = await this.prisma.appointment.findUniqueOrThrow({ where: { id: payment.appointmentId } });
+      if (appointment.status === 'CANCELED') {
+        // Pagou depois de expirar: o horário pode ter sido ocupado. Fica registrado para estorno manual.
+        this.logger.warn(`Pix pago após cancelamento do agendamento ${appointment.id} — estorno manual necessário.`);
+      }
     }
   }
 
@@ -125,8 +150,8 @@ export class PaymentsService {
       return 'paid';
     }
     if ((status === 'cancelled' || status === 'rejected') && payment.status === 'PENDING') {
-      await this.prisma.payment.update({ where: { id: payment.id }, data: { status: 'CANCELED' } });
-      if (payment.appointment.status === 'PENDING_PAYMENT') await this.appointments.cancel(payment.appointmentId);
+      const claimed = await this.prisma.payment.updateMany({ where: { id: payment.id, status: 'PENDING' }, data: { status: 'CANCELED' } });
+      if (claimed.count) await this.appointments.cancel(payment.appointmentId, new Date(), ['PENDING_PAYMENT']);
       return 'canceled';
     }
     return 'ignored';
@@ -134,9 +159,9 @@ export class PaymentsService {
 
   /** Demonstração: "pagar" um Pix simulado pelo link do cliente. */
   async simulatePayment(manageToken: string): Promise<void> {
-    const payment = await this.prisma.payment.findFirst({ where: { appointment: { manageToken } } });
+    const payment = await this.prisma.payment.findFirst({ where: { appointment: { manageToken } }, include: { appointment: { include: { business: true } } } });
     if (!payment) throw new NotFoundException('Este agendamento não tem Pix pendente.');
-    if (payment.provider !== 'SIMULATED') throw new BadRequestException('Só é possível simular pagamentos do modo de demonstração.');
+    if (payment.provider !== 'SIMULATED' || !this.canSimulate(payment.appointment.business)) throw new BadRequestException('Só é possível simular pagamentos do modo de demonstração.');
     if (payment.status !== 'PENDING') throw new BadRequestException('Este Pix não está mais pendente.');
     await this.markPaid(payment);
   }
