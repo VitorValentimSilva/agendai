@@ -235,11 +235,17 @@ São **dois projetos na Vercel** apontando para o mesmo repositório (um para `a
 
 2. **API (projeto `agendai-api`)**
    1. Vercel → *Add New Project* → importe o repositório → **Root Directory: `apps/api`**.
-      O framework **NestJS** é detectado automaticamente (entrypoint `src/app.ts`), sem configurar build.
+      O preset **NestJS** e o comando de build já estão fixados em `apps/api/vercel.json` (entrypoint `src/app.ts`),
+      então não é preciso configurar build no painel.
    2. Variáveis: `DATABASE_URL`, `DIRECT_URL`, `JWT_SECRET`, `CRON_SECRET` e `WEB_ORIGIN` (pode ser provisório; ajuste no passo 4).
    3. Deploy. O script `vercel-build` roda `prisma generate && prisma migrate deploy && nest build` e popula a demo **só se o banco estiver vazio**.
    4. Confira `https://SEU-API.vercel.app/health` (→ `ok`) e `/docs`.
    5. O cron diário de `apps/api/vercel.json` chama `GET /internal/reset-demo`; a Vercel envia `Authorization: Bearer $CRON_SECRET` automaticamente.
+
+   > **Problema comum — toda rota da API dá `404 NOT_FOUND`:** o projeto foi criado com outro Framework Preset
+   > (ex.: Vite) ou sem Root Directory `apps/api`. Nesse caso o build passa, mas a Vercel publica só arquivos
+   > estáticos e nenhuma função do Nest. Confira Root Directory = `apps/api` e Framework Preset = **NestJS**
+   > (o `vercel.json` já força isso) e faça *Redeploy*.
 
 3. **Web (projeto `agendai-web`)**
    1. Novo projeto com o mesmo repositório → **Root Directory: `apps/web`** (Next.js detectado).
