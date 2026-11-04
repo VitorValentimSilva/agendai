@@ -14,4 +14,9 @@ async function bootstrap(): Promise<void> {
   await app.listen(env.port);
 }
 
-await bootstrap();
+// Sem top-level await: a Vercel carrega este arquivo com require(), que não aceita
+// módulos ESM com await no topo (ERR_REQUIRE_ASYNC_MODULE).
+bootstrap().catch((error: unknown) => {
+  console.error('Falha ao iniciar a API', error);
+  process.exit(1);
+});
