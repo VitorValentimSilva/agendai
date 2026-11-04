@@ -8,6 +8,7 @@ import { PublicModule } from './public/public.module.js';
 import { AdminModule } from './admin/admin.module.js';
 import { MessagingModule } from './messaging/messaging.module.js';
 import { PaymentsModule } from './payments/payments.module.js';
+import { WaitlistModule } from './waitlist/waitlist.module.js';
 import { InternalController } from './internal/internal.controller.js';
 import { HealthController } from './health/health.controller.js';
 
@@ -20,6 +21,7 @@ import { HealthController } from './health/health.controller.js';
     AppointmentsModule,
     MessagingModule,
     PaymentsModule,
+    WaitlistModule,
     PublicModule,
     AdminModule,
   ],

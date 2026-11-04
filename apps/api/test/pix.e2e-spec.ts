@@ -18,7 +18,7 @@ const fakeMp = {
     if (!s) throw new Error('not found');
     return s;
   },
-  simulatedPix: new MercadoPagoClient().simulatedPix,
+  simulatedPix: (amountCents: number, reference: string) => new MercadoPagoClient().simulatedPix(amountCents, reference),
 };
 
 function mpSignature(dataId: string, requestId: string) {

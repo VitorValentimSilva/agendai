@@ -1,7 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { AppointmentWithRelations } from './appointment.mapper.js';
 
-export type AppointmentEvent = 'created' | 'rescheduled' | 'status-changed' | 'canceled';
+/** `slot-freed`: o horário antigo de uma remarcação ficou livre (o agendamento continua ativo). */
+export type AppointmentEvent = 'created' | 'rescheduled' | 'status-changed' | 'canceled' | 'slot-freed';
 
 /** Reage a mudanças em agendamentos (fila de espera, Google Calendar...). */
 export interface AppointmentListener {

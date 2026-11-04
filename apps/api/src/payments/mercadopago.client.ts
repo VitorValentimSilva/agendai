@@ -20,7 +20,8 @@ export interface CreatePixInput {
   idempotencyKey: string;
 }
 
-export type ProviderPaymentStatus = 'approved' | 'pending' | 'in_process' | 'rejected' | 'cancelled' | 'refunded' | 'charged_back' | string;
+/** approved, pending, in_process, rejected, cancelled, refunded, charged_back... */
+export type ProviderPaymentStatus = string;
 
 /** Cliente mínimo da API de pagamentos do Mercado Pago (Pix). */
 @Injectable()

@@ -6,17 +6,18 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import type { AppointmentSource, AppointmentStatus, Business, Customer } from '@prisma/client';
+import type { AppointmentSource, AppointmentStatus, Business } from '@prisma/client';
 import { PrismaService } from '../common/prisma.service.js';
 import { AvailabilityService } from '../availability/availability.service.js';
 import { localDayRange, toLocalDate, pickLeastBusyProfessional } from '../availability/availability.engine.js';
 import { generateAppointmentCode, generateManageToken } from '../common/ids.js';
 import { isBookingConflict, isUniqueViolation } from '../common/prisma-errors.js';
-import { isValidBrazilianWhatsapp, normalizeWhatsapp } from '../common/phone.js';
+import { isValidBrazilianWhatsapp } from '../common/phone.js';
 import type { SessionUser } from '../common/decorators.js';
 import { env } from '../common/env.js';
 import { formatLongDateTime } from '../common/dates.js';
 import { appointmentInclude, type AppointmentWithRelations } from './appointment.mapper.js';
+import { findOrCreateCustomer } from '../common/customers.js';
 import { checkCustomerChange, checkStatusTransition } from './status-rules.js';
 import { buildIcs } from './ics.js';
 import { AppointmentEvents } from './appointment-events.js';
@@ -66,7 +67,7 @@ export class AppointmentsService {
     const candidates =
       req.professionalId === 'any' ? await this.orderByLeastBusy(slot.professionalIds, business, startsAt) : slot.professionalIds;
 
-    const customer = await this.upsertCustomer(business.id, req.customer, req.source === 'MANUAL');
+    const customer = await findOrCreateCustomer(this.prisma, business.id, req.customer, req.source === 'MANUAL');
     const endsAt = new Date(startsAt.getTime() + service.durationMinutes * 60_000);
 
     for (const professionalId of candidates) {
@@ -161,8 +162,8 @@ export class AppointmentsService {
         include: appointmentInclude,
       });
       await this.events.emit('rescheduled', updated);
-      // O horário antigo ficou livre: a fila de espera trata como um cancelamento daquele horário
-      await this.events.emit('canceled', { ...appointment, status: 'CANCELED' });
+      // O horário antigo ficou livre (a fila de espera pode avisar alguém)
+      await this.events.emit('slot-freed', appointment);
       return updated;
     } catch (error) {
       if (isBookingConflict(error)) throw new ConflictException(SLOT_TAKEN_MESSAGE);
@@ -230,33 +231,6 @@ export class AppointmentsService {
     });
     const map = Object.fromEntries(counts.map((c) => [c.professionalId, c._count._all]));
     return pickLeastBusyProfessional(ids, map);
-  }
-
-  /**
-   * Cria o cliente ou reaproveita o existente (mesmo WhatsApp).
-   * No agendamento online NÃO sobrescrevemos nome/e-mail de um cliente existente: qualquer pessoa
-   * poderia digitar o WhatsApp de outra e trocar os dados dela. Só completamos o e-mail se faltar.
-   * No agendamento manual (painel), os dados informados pela equipe atualizam o cadastro.
-   */
-  private async upsertCustomer(businessId: string, input: CustomerInputDto, trusted: boolean): Promise<Customer> {
-    const whatsapp = normalizeWhatsapp(input.whatsapp);
-    const email = input.email?.toLowerCase();
-    const where = { businessId_whatsapp: { businessId, whatsapp } };
-    try {
-      const existing = await this.prisma.customer.findUnique({ where });
-      if (existing) {
-        if (trusted) return this.prisma.customer.update({ where, data: { name: input.name, ...(email ? { email } : {}) } });
-        if (email && !existing.email) return this.prisma.customer.update({ where, data: { email } });
-        return existing;
-      }
-      return await this.prisma.customer.create({ data: { businessId, whatsapp, name: input.name, ...(email ? { email } : {}) } });
-    } catch (error) {
-      // Dois pedidos simultâneos do mesmo cliente: o segundo encontra o registro criado pelo primeiro.
-      if (isUniqueViolation(error)) {
-        return this.prisma.customer.findUniqueOrThrow({ where: { businessId_whatsapp: { businessId, whatsapp } } });
-      }
-      throw error;
-    }
   }
 
   private async createWithUniqueCode(data: {
