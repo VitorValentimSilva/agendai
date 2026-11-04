@@ -1,7 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ThrottlerModule } from '@nestjs/throttler';
 import { PrismaModule } from './common/prisma.module.js';
-import { env } from './common/env.js';
 import { AuthModule } from './auth/auth.module.js';
 import { BusinessModule } from './business/business.module.js';
 import { AvailabilityModule } from './availability/availability.module.js';
@@ -13,7 +11,6 @@ import { HealthController } from './health/health.controller.js';
 
 @Module({
   imports: [
-    ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: env.throttleLimit }]),
     PrismaModule,
     AuthModule,
     BusinessModule,

@@ -1,10 +1,10 @@
 import { Body, Controller, Get, HttpCode, Post, Res, UseGuards } from '@nestjs/common';
 import { ApiCookieAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
-import { Throttle } from '@nestjs/throttler';
 import type { Response, CookieOptions } from 'express';
 import { CurrentUser, type SessionUser } from '../common/decorators.js';
 import { env, SESSION_COOKIE, SESSION_TTL_SECONDS } from '../common/env.js';
 import { AuthGuard } from './auth.guard.js';
+import { RateLimit, RateLimitGuard } from '../common/rate-limit.js';
 import { LoginDto, MeDto } from './auth.dto.js';
 import { AuthService } from './auth.service.js';
 
@@ -19,7 +19,8 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(200)
-  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ limit: 10 })
   @ApiOkResponse({ type: MeDto })
   async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response): Promise<MeDto> {
     const { token, me } = await this.auth.login(dto.email, dto.password);
