@@ -33,6 +33,7 @@ export function DateSlotPicker({
   excludeStart,
   openWeekdays,
   allowWaitlist = false,
+  manageToken,
 }: {
   serviceId: string;
   professionalId: string;
@@ -51,12 +52,14 @@ export function DateSlotPicker({
   openWeekdays?: Set<number>;
   /** Mostra "Entrar na fila de espera" quando a data escolhida está lotada. */
   allowWaitlist?: boolean;
+  /** Remarcação: consulta a disponibilidade pelo link do agendamento. */
+  manageToken?: string;
 }) {
   const today = todayInTz(timezone);
   const lastDay = toIsoDate(addDays(fromIsoDate(today), maxAdvanceDays));
-  const days = useAvailableDays({ serviceId, professionalId, from: today, to: lastDay });
+  const days = useAvailableDays({ serviceId, professionalId, from: today, to: lastDay, manageToken });
   const available = useMemo(() => new Set(days.data?.days ?? []), [days.data]);
-  const slots = useSlots({ serviceId, professionalId, date });
+  const slots = useSlots({ serviceId, professionalId, date, manageToken });
 
   // Seleciona automaticamente o primeiro dia com horário (se nenhuma data foi escolhida)
   useEffect(() => {

@@ -24,32 +24,50 @@ export function useServiceProfessionals(serviceId: string | undefined) {
   });
 }
 
-export function useAvailableDays(params: { serviceId?: string; professionalId?: string; from: string; to: string }) {
+/**
+ * Dias com horário livre. Com `manageToken` (remarcação), consulta pelo agendamento:
+ * vale para qualquer negócio (independe do subdomínio) e o horário atual não conta como ocupado.
+ */
+export function useAvailableDays(params: { serviceId?: string; professionalId?: string; from: string; to: string; manageToken?: string }) {
+  const { manageToken, ...rest } = params;
   return useQuery({
     queryKey: ["available-days", params],
-    enabled: Boolean(params.serviceId && params.professionalId),
+    enabled: Boolean(manageToken || (params.serviceId && params.professionalId)),
     queryFn: () =>
-      unwrap(
-        api.GET("/availability/days", {
-          params: {
-            query: { serviceId: params.serviceId!, professionalId: params.professionalId!, from: params.from, to: params.to },
-          },
-        }),
-      ),
+      manageToken
+        ? unwrap(
+            api.GET("/appointments/manage/{token}/availability/days", {
+              params: { path: { token: manageToken }, query: { from: rest.from, to: rest.to } },
+            }),
+          )
+        : unwrap(
+            api.GET("/availability/days", {
+              params: {
+                query: { serviceId: rest.serviceId!, professionalId: rest.professionalId!, from: rest.from, to: rest.to },
+              },
+            }),
+          ),
   });
 }
 
-export function useSlots(params: { serviceId?: string; professionalId?: string; date?: string }) {
+export function useSlots(params: { serviceId?: string; professionalId?: string; date?: string; manageToken?: string }) {
+  const { manageToken, ...rest } = params;
   return useQuery({
     queryKey: ["slots", params],
-    enabled: Boolean(params.serviceId && params.professionalId && params.date),
+    enabled: Boolean(params.date && (manageToken || (params.serviceId && params.professionalId))),
     staleTime: 10_000,
     queryFn: () =>
-      unwrap(
-        api.GET("/availability", {
-          params: { query: { serviceId: params.serviceId!, professionalId: params.professionalId!, date: params.date! } },
-        }),
-      ),
+      manageToken
+        ? unwrap(
+            api.GET("/appointments/manage/{token}/availability", {
+              params: { path: { token: manageToken }, query: { date: rest.date! } },
+            }),
+          )
+        : unwrap(
+            api.GET("/availability", {
+              params: { query: { serviceId: rest.serviceId!, professionalId: rest.professionalId!, date: rest.date! } },
+            }),
+          ),
   });
 }
 
