@@ -15,6 +15,7 @@ import { useDashboard, useMe, type AdminAppointment } from "@/hooks/use-admin";
 import { formatInTz, formatLocalDate, formatPrice, formatTime } from "@/lib/format";
 import { STATUS_LABEL, STATUS_VARIANT } from "@/lib/status";
 import { PageHeader } from "./page-header";
+import { BookingLinkCard } from "./booking-link-card";
 import { AppointmentDialog } from "./appointment-dialog";
 
 const chartConfig = {
@@ -60,6 +61,12 @@ export function DashboardView() {
           </Button>
         }
       />
+
+      {me.data?.role === "OWNER" && (
+        <div className="mb-4">
+          <BookingLinkCard slug={me.data.businessSlug} />
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-6">
         {d

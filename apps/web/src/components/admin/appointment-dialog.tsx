@@ -17,15 +17,15 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useNow } from "@/hooks/use-now";
-import { useChangeStatus, type AdminAppointment, type AppointmentStatus } from "@/hooks/use-admin";
+import { useMe, useChangeStatus, type AdminAppointment, type AppointmentStatus } from "@/hooks/use-admin";
 import { formatDateLong, formatDuration, formatPrice, formatTime } from "@/lib/format";
 import { formatPhone, whatsappLink } from "@/lib/phone";
 import { STATUS_LABEL, STATUS_VARIANT } from "@/lib/status";
 
-export function reminderMessage(a: AdminAppointment, timezone: string, origin: string): string {
+export function reminderMessage(a: AdminAppointment, timezone: string, origin: string, businessName: string): string {
   const first = a.customer.name.split(" ")[0];
   return (
-    `Olá, ${first}! Passando para lembrar do seu horário na Barbearia Navalha de Ouro: ` +
+    `Olá, ${first}! Passando para lembrar do seu horário em ${businessName}: ` +
     `${a.service.name} com ${a.professional.name}, ${formatDateLong(a.startsAt, timezone)} às ${formatTime(a.startsAt, timezone)}. ` +
     `Se precisar remarcar ou cancelar: ${origin}/meu-agendamento/${a.manageToken}`
   );
@@ -41,6 +41,7 @@ export function AppointmentDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const change = useChangeStatus();
+  const me = useMe();
   const now = useNow();
   const a = appointment;
 
@@ -85,7 +86,7 @@ export function AppointmentDialog({
             </dl>
 
             <Button asChild variant="outline" className="w-full border-success/40 text-success hover:bg-success/10 hover:text-success">
-              <a href={whatsappLink(a.customer.whatsapp, reminderMessage(a, timezone, window.location.origin))} target="_blank" rel="noreferrer">
+              <a href={whatsappLink(a.customer.whatsapp, reminderMessage(a, timezone, window.location.origin, me.data?.businessName ?? "nosso estabelecimento"))} target="_blank" rel="noreferrer">
                 <MessageCircle /> Lembrar no WhatsApp
               </a>
             </Button>

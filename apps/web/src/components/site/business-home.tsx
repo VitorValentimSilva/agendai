@@ -55,9 +55,7 @@ export function BusinessHome() {
             </motion.p>
             <motion.h1 variants={fadeUp} className="font-display text-4xl leading-[1.05] font-semibold tracking-tight sm:text-5xl md:text-6xl">
               {b ? (
-                <>
-                  Barbearia <span className="text-gold italic">Navalha</span> de Ouro
-                </>
+                <BusinessName name={b.name} />
               ) : (
                 <Skeleton className="h-14 w-4/5" />
               )}
@@ -133,8 +131,12 @@ export function BusinessHome() {
                         <a href={`tel:${b.phone.replace(/\D/g, "")}`} className="hover:text-foreground">
                           {b.phone}
                         </a>
-                        <span aria-hidden>·</span>
-                        <span>{formatPhone(b.whatsapp)}</span>
+                        {b.phone.replace(/\D/g, "") !== b.whatsapp.replace(/^55/, "") && (
+                          <>
+                            <span aria-hidden>·</span>
+                            <span>{formatPhone(b.whatsapp)}</span>
+                          </>
+                        )}
                       </p>
                       {b.instagram && (
                         <p className="flex items-center gap-2">
@@ -240,6 +242,18 @@ export function BusinessHome() {
           </div>
         </div>
       </section>
+    </>
+  );
+}
+
+/** Nome do negócio com a última palavra em destaque dourado. */
+function BusinessName({ name }: { name: string }) {
+  const words = name.trim().split(/\s+/);
+  if (words.length < 2) return <span className="text-gold italic">{name}</span>;
+  const last = words.pop();
+  return (
+    <>
+      {words.join(" ")} <span className="text-gold italic">{last}</span>
     </>
   );
 }

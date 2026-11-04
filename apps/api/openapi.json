@@ -102,6 +102,69 @@
         ]
       }
     },
+    "/auth/signup": {
+      "post": {
+        "operationId": "Auth_signup",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignupDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Cadastro self-service: cria o negócio, o dono e serviços iniciais",
+        "tags": [
+          "Painel — autenticação"
+        ]
+      }
+    },
+    "/auth/slug-available": {
+      "get": {
+        "operationId": "Auth_slugAvailable",
+        "parameters": [
+          {
+            "name": "slug",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SlugAvailabilityDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Verifica se o endereço (slug) está livre",
+        "tags": [
+          "Painel — autenticação"
+        ]
+      }
+    },
     "/auth/logout": {
       "post": {
         "operationId": "Auth_logout",
@@ -145,7 +208,17 @@
     "/business": {
       "get": {
         "operationId": "Public_business",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "x-business-slug",
+            "in": "header",
+            "description": "Slug do negócio (multiempresa). Sem ele, usa o negócio padrão.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -167,7 +240,17 @@
     "/services": {
       "get": {
         "operationId": "Public_services",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "x-business-slug",
+            "in": "header",
+            "description": "Slug do negócio (multiempresa). Sem ele, usa o negócio padrão.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -192,7 +275,17 @@
     "/professionals": {
       "get": {
         "operationId": "Public_team",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "x-business-slug",
+            "in": "header",
+            "description": "Slug do negócio (multiempresa). Sem ele, usa o negócio padrão.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -218,6 +311,15 @@
       "get": {
         "operationId": "Public_professionals",
         "parameters": [
+          {
+            "name": "x-business-slug",
+            "in": "header",
+            "description": "Slug do negócio (multiempresa). Sem ele, usa o negócio padrão.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "serviceId",
             "required": true,
@@ -252,6 +354,15 @@
       "get": {
         "operationId": "Public_slots",
         "parameters": [
+          {
+            "name": "x-business-slug",
+            "in": "header",
+            "description": "Slug do negócio (multiempresa). Sem ele, usa o negócio padrão.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "serviceId",
             "required": true,
@@ -302,6 +413,15 @@
       "get": {
         "operationId": "Public_days",
         "parameters": [
+          {
+            "name": "x-business-slug",
+            "in": "header",
+            "description": "Slug do negócio (multiempresa). Sem ele, usa o negócio padrão.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "serviceId",
             "required": true,
@@ -359,7 +479,17 @@
     "/appointments": {
       "post": {
         "operationId": "Public_create",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "x-business-slug",
+            "in": "header",
+            "description": "Slug do negócio (multiempresa). Sem ele, usa o negócio padrão.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -396,6 +526,15 @@
         "operationId": "Public_byToken",
         "parameters": [
           {
+            "name": "x-business-slug",
+            "in": "header",
+            "description": "Slug do negócio (multiempresa). Sem ele, usa o negócio padrão.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "token",
             "required": true,
             "in": "path",
@@ -427,6 +566,15 @@
         "operationId": "Public_cancel",
         "parameters": [
           {
+            "name": "x-business-slug",
+            "in": "header",
+            "description": "Slug do negócio (multiempresa). Sem ele, usa o negócio padrão.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "token",
             "required": true,
             "in": "path",
@@ -457,6 +605,15 @@
       "post": {
         "operationId": "Public_reschedule",
         "parameters": [
+          {
+            "name": "x-business-slug",
+            "in": "header",
+            "description": "Slug do negócio (multiempresa). Sem ele, usa o negócio padrão.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "token",
             "required": true,
@@ -498,6 +655,15 @@
       "get": {
         "operationId": "Public_ics",
         "parameters": [
+          {
+            "name": "x-business-slug",
+            "in": "header",
+            "description": "Slug do negócio (multiempresa). Sem ele, usa o negócio padrão.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "token",
             "required": true,
@@ -1621,6 +1787,12 @@
           },
           "businessName": {
             "type": "string"
+          },
+          "businessSlug": {
+            "type": "string"
+          },
+          "businessTimezone": {
+            "type": "string"
           }
         },
         "required": [
@@ -1630,7 +1802,92 @@
           "role",
           "professionalId",
           "businessId",
-          "businessName"
+          "businessName",
+          "businessSlug",
+          "businessTimezone"
+        ]
+      },
+      "SignupDto": {
+        "type": "object",
+        "properties": {
+          "businessName": {
+            "type": "string",
+            "example": "Barbearia do Zé"
+          },
+          "slug": {
+            "type": "string",
+            "example": "barbearia-do-ze",
+            "description": "Endereço do seu link: letras minúsculas, números e hífen."
+          },
+          "segment": {
+            "type": "string",
+            "enum": [
+              "barbearia",
+              "salao",
+              "clinica",
+              "estudio"
+            ]
+          },
+          "ownerName": {
+            "type": "string",
+            "example": "José da Silva"
+          },
+          "email": {
+            "type": "string",
+            "example": "ze@barbearia.com"
+          },
+          "password": {
+            "type": "string",
+            "example": "senha-forte-123"
+          },
+          "whatsapp": {
+            "type": "string",
+            "example": "(19) 99999-0000"
+          },
+          "city": {
+            "type": "string",
+            "example": "Campinas"
+          },
+          "state": {
+            "type": "string",
+            "example": "SP"
+          },
+          "addressLine": {
+            "type": "string",
+            "example": "Rua das Flores, 100 — Centro"
+          }
+        },
+        "required": [
+          "businessName",
+          "slug",
+          "segment",
+          "ownerName",
+          "email",
+          "password",
+          "whatsapp",
+          "city",
+          "state",
+          "addressLine"
+        ]
+      },
+      "SlugAvailabilityDto": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string"
+          },
+          "available": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "slug",
+          "available",
+          "reason"
         ]
       },
       "OpeningIntervalDto": {
@@ -1676,6 +1933,10 @@
           },
           "slug": {
             "type": "string"
+          },
+          "segment": {
+            "type": "string",
+            "example": "barbearia"
           },
           "description": {
             "type": "string",
@@ -1729,6 +1990,7 @@
         "required": [
           "name",
           "slug",
+          "segment",
           "description",
           "phone",
           "whatsapp",
@@ -1927,7 +2189,8 @@
           "CONFIRMED",
           "COMPLETED",
           "CANCELED",
-          "NO_SHOW"
+          "NO_SHOW",
+          "PENDING_PAYMENT"
         ]
       },
       "AppointmentServiceRefDto": {

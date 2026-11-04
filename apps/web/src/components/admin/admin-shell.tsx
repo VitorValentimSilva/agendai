@@ -72,7 +72,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             </SheetContent>
           </Sheet>
           <BrandMark className="size-8" />
-          <span className="font-display font-semibold">Navalha de Ouro</span>
+          <span className="truncate font-display font-semibold">{me.data?.businessName ?? "Painel"}</span>
           <div className="ml-auto">
             <ThemeToggle />
           </div>
@@ -130,7 +130,7 @@ function SidebarContent({
       <div className="flex h-16 items-center gap-2.5 border-b border-sidebar-border px-5">
         <BrandMark />
         <div className="leading-tight">
-          <p className="font-display text-[15px] font-semibold">Navalha de Ouro</p>
+          <p className="max-w-[10.5rem] truncate font-display text-[15px] font-semibold">{me?.businessName ?? "Painel"}</p>
           <p className="text-[11px] tracking-[0.16em] text-muted-foreground uppercase">Painel · Agendaí</p>
         </div>
       </div>

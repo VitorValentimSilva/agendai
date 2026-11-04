@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Header, Param, Post, Query, Res, UseGuards } from '@nestjs/common';
-import { ApiConflictResponse, ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiProduces, ApiTags } from '@nestjs/swagger';
+import { ApiConflictResponse, ApiHeader, ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiProduces, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { PrismaService } from '../common/prisma.service.js';
 import { BusinessService } from '../business/business.service.js';
@@ -10,6 +10,7 @@ import { CreateAppointmentDto, CreatedAppointmentDto, PublicAppointmentDto, Resc
 import { RateLimit, RateLimitGuard } from '../common/rate-limit.js';
 import { parseDateParam, formatTime } from '../common/dates.js';
 import { env } from '../common/env.js';
+import { TenantSlug } from '../common/tenant.js';
 import {
   AvailabilityDto,
   AvailabilityQueryDto,
@@ -21,6 +22,7 @@ import {
 } from './public.dto.js';
 
 @ApiTags('Público')
+@ApiHeader({ name: 'x-business-slug', required: false, description: 'Slug do negócio (multiempresa). Sem ele, usa o negócio padrão.' })
 @UseGuards(RateLimitGuard)
 @Controller()
 export class PublicController {
@@ -34,11 +36,12 @@ export class PublicController {
   @Get('business')
   @ApiOperation({ summary: 'Dados públicos do negócio' })
   @ApiOkResponse({ type: PublicBusinessDto })
-  async business(): Promise<PublicBusinessDto> {
-    const b = await this.businesses.getPublicBusiness();
+  async business(@TenantSlug() tenant?: string): Promise<PublicBusinessDto> {
+    const b = await this.businesses.getPublicBusiness(tenant);
     return {
       name: b.name,
       slug: b.slug,
+      segment: b.segment,
       description: b.description,
       phone: b.phone,
       whatsapp: b.whatsapp,
@@ -59,8 +62,8 @@ export class PublicController {
   @Get('services')
   @ApiOperation({ summary: 'Serviços ativos' })
   @ApiOkResponse({ type: [PublicServiceDto] })
-  async services(): Promise<PublicServiceDto[]> {
-    const b = await this.businesses.getPublicBusiness();
+  async services(@TenantSlug() tenant?: string): Promise<PublicServiceDto[]> {
+    const b = await this.businesses.getPublicBusiness(tenant);
     return this.prisma.service.findMany({
       where: { businessId: b.id, active: true, professionals: { some: { professional: { active: true } } } },
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
@@ -71,8 +74,8 @@ export class PublicController {
   @Get('professionals')
   @ApiOperation({ summary: 'Equipe (profissionais ativos)' })
   @ApiOkResponse({ type: [PublicProfessionalDto] })
-  async team(): Promise<PublicProfessionalDto[]> {
-    const b = await this.businesses.getPublicBusiness();
+  async team(@TenantSlug() tenant?: string): Promise<PublicProfessionalDto[]> {
+    const b = await this.businesses.getPublicBusiness(tenant);
     return this.prisma.professional.findMany({
       where: { businessId: b.id, active: true },
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
@@ -83,8 +86,8 @@ export class PublicController {
   @Get('services/:serviceId/professionals')
   @ApiOperation({ summary: 'Profissionais que fazem o serviço' })
   @ApiOkResponse({ type: [PublicProfessionalDto] })
-  async professionals(@Param('serviceId') serviceId: string): Promise<PublicProfessionalDto[]> {
-    const b = await this.businesses.getPublicBusiness();
+  async professionals(@Param('serviceId') serviceId: string, @TenantSlug() tenant?: string): Promise<PublicProfessionalDto[]> {
+    const b = await this.businesses.getPublicBusiness(tenant);
     return this.prisma.professional.findMany({
       where: { businessId: b.id, active: true, services: { some: { serviceId, service: { active: true } } } },
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
@@ -95,8 +98,8 @@ export class PublicController {
   @Get('availability')
   @ApiOperation({ summary: 'Horários livres em uma data (fuso do negócio)' })
   @ApiOkResponse({ type: AvailabilityDto })
-  async slots(@Query() q: AvailabilityQueryDto): Promise<AvailabilityDto> {
-    const business = await this.businesses.getPublicBusiness();
+  async slots(@Query() q: AvailabilityQueryDto, @TenantSlug() tenant?: string): Promise<AvailabilityDto> {
+    const business = await this.businesses.getPublicBusiness(tenant);
     const { slots } = await this.availability.slotsForDate(
       { business, serviceId: q.serviceId, professionalId: q.professionalId },
       parseDateParam(q.date),
@@ -116,8 +119,8 @@ export class PublicController {
   @Get('availability/days')
   @ApiOperation({ summary: 'Dias com pelo menos um horário livre (para o calendário)' })
   @ApiOkResponse({ type: AvailableDaysDto })
-  async days(@Query() q: AvailableDaysQueryDto): Promise<AvailableDaysDto> {
-    const business = await this.businesses.getPublicBusiness();
+  async days(@Query() q: AvailableDaysQueryDto, @TenantSlug() tenant?: string): Promise<AvailableDaysDto> {
+    const business = await this.businesses.getPublicBusiness(tenant);
     const days = await this.availability.availableDays(
       { business, serviceId: q.serviceId, professionalId: q.professionalId },
       parseDateParam(q.from, 'from'),
@@ -131,8 +134,8 @@ export class PublicController {
   @ApiOperation({ summary: 'Criar agendamento (cliente)' })
   @ApiCreatedResponse({ type: CreatedAppointmentDto })
   @ApiConflictResponse({ description: 'Horário indisponível ou reservado por outra pessoa' })
-  async create(@Body() dto: CreateAppointmentDto): Promise<CreatedAppointmentDto> {
-    const business = await this.businesses.getPublicBusiness();
+  async create(@Body() dto: CreateAppointmentDto, @TenantSlug() tenant?: string): Promise<CreatedAppointmentDto> {
+    const business = await this.businesses.getPublicBusiness(tenant);
     const appointment = await this.appointments.book({ ...dto, business, source: 'ONLINE' });
     return { ...toPublicAppointment(appointment, business), manageToken: appointment.manageToken };
   }

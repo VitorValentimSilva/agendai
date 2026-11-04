@@ -1,6 +1,6 @@
 /**
  * ARQUIVO GERADO — não edite manualmente.
- * Fonte: API /openapi.json
+ * Fonte: apps/api/openapi.json
  * Comando: npm run gen:api
  */
 
@@ -387,6 +387,40 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/auth/signup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cadastro self-service: cria o negócio, o dono e serviços iniciais */
+        post: operations["Auth_signup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/slug-available": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Verifica se o endereço (slug) está livre */
+        get: operations["Auth_slugAvailable"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/availability": {
         parameters: {
             query?: never;
@@ -568,7 +602,7 @@ export type components = {
             name: string;
         };
         /** @enum {string} */
-        AppointmentStatus: "SCHEDULED" | "CONFIRMED" | "COMPLETED" | "CANCELED" | "NO_SHOW";
+        AppointmentStatus: "SCHEDULED" | "CONFIRMED" | "COMPLETED" | "CANCELED" | "NO_SHOW" | "PENDING_PAYMENT";
         AvailabilityDto: {
             date: string;
             slots: components["schemas"]["SlotDto"][];
@@ -715,6 +749,8 @@ export type components = {
         MeDto: {
             businessId: string;
             businessName: string;
+            businessSlug: string;
+            businessTimezone: string;
             email: string;
             id: string;
             name: string;
@@ -764,6 +800,8 @@ export type components = {
             name: string;
             openingHours: components["schemas"]["OpeningHoursDto"][];
             phone: string;
+            /** @example barbearia */
+            segment: string;
             slotIntervalMinutes: number;
             slug: string;
             state: string;
@@ -808,6 +846,31 @@ export type components = {
             priceCents: number;
             professionalIds?: string[];
         };
+        SignupDto: {
+            /** @example Rua das Flores, 100 — Centro */
+            addressLine: string;
+            /** @example Barbearia do Zé */
+            businessName: string;
+            /** @example Campinas */
+            city: string;
+            /** @example ze@barbearia.com */
+            email: string;
+            /** @example José da Silva */
+            ownerName: string;
+            /** @example senha-forte-123 */
+            password: string;
+            /** @enum {string} */
+            segment: "barbearia" | "salao" | "clinica" | "estudio";
+            /**
+             * @description Endereço do seu link: letras minúsculas, números e hífen.
+             * @example barbearia-do-ze
+             */
+            slug: string;
+            /** @example SP */
+            state: string;
+            /** @example (19) 99999-0000 */
+            whatsapp: string;
+        };
         SlotDto: {
             end: string;
             professionalIds: string[];
@@ -818,6 +881,11 @@ export type components = {
              * @example 09:30
              */
             time: string;
+        };
+        SlugAvailabilityDto: {
+            available: boolean;
+            reason: string | null;
+            slug: string;
         };
         TimeOffDto: {
             endsAt: string;
@@ -1731,7 +1799,10 @@ export interface operations {
     Public_create: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Slug do negócio (multiempresa). Sem ele, usa o negócio padrão. */
+                "x-business-slug"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -1761,7 +1832,10 @@ export interface operations {
     Public_byToken: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Slug do negócio (multiempresa). Sem ele, usa o negócio padrão. */
+                "x-business-slug"?: string;
+            };
             path: {
                 token: string;
             };
@@ -1782,7 +1856,10 @@ export interface operations {
     Public_cancel: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Slug do negócio (multiempresa). Sem ele, usa o negócio padrão. */
+                "x-business-slug"?: string;
+            };
             path: {
                 token: string;
             };
@@ -1803,7 +1880,10 @@ export interface operations {
     Public_ics: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Slug do negócio (multiempresa). Sem ele, usa o negócio padrão. */
+                "x-business-slug"?: string;
+            };
             path: {
                 token: string;
             };
@@ -1822,7 +1902,10 @@ export interface operations {
     Public_reschedule: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Slug do negócio (multiempresa). Sem ele, usa o negócio padrão. */
+                "x-business-slug"?: string;
+            };
             path: {
                 token: string;
             };
@@ -1903,6 +1986,50 @@ export interface operations {
             };
         };
     };
+    Auth_signup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SignupDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeDto"];
+                };
+            };
+        };
+    };
+    Auth_slugAvailable: {
+        parameters: {
+            query: {
+                slug: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SlugAvailabilityDto"];
+                };
+            };
+        };
+    };
     Public_slots: {
         parameters: {
             query: {
@@ -1911,7 +2038,10 @@ export interface operations {
                 professionalId: string;
                 serviceId: string;
             };
-            header?: never;
+            header?: {
+                /** @description Slug do negócio (multiempresa). Sem ele, usa o negócio padrão. */
+                "x-business-slug"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -1935,7 +2065,10 @@ export interface operations {
                 serviceId: string;
                 to: string;
             };
-            header?: never;
+            header?: {
+                /** @description Slug do negócio (multiempresa). Sem ele, usa o negócio padrão. */
+                "x-business-slug"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -1954,7 +2087,10 @@ export interface operations {
     Public_business: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Slug do negócio (multiempresa). Sem ele, usa o negócio padrão. */
+                "x-business-slug"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -2015,7 +2151,10 @@ export interface operations {
     Public_team: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Slug do negócio (multiempresa). Sem ele, usa o negócio padrão. */
+                "x-business-slug"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -2034,7 +2173,10 @@ export interface operations {
     Public_services: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Slug do negócio (multiempresa). Sem ele, usa o negócio padrão. */
+                "x-business-slug"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -2053,7 +2195,10 @@ export interface operations {
     Public_professionals: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Slug do negócio (multiempresa). Sem ele, usa o negócio padrão. */
+                "x-business-slug"?: string;
+            };
             path: {
                 serviceId: string;
             };

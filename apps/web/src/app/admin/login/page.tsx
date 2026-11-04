@@ -13,7 +13,7 @@ export default function LoginPage() {
         <div className="mb-8 flex flex-col items-center text-center">
           <BrandMark className="size-12" />
           <h1 className="mt-4 font-display text-3xl font-semibold tracking-tight">Painel do negócio</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Barbearia Navalha de Ouro · Agendaí</p>
+          <p className="mt-1 text-sm text-muted-foreground">Agendaí · agenda online do seu negócio</p>
         </div>
         <div className="rounded-2xl border bg-card/90 p-6 shadow-xl backdrop-blur sm:p-8">
           <Suspense>
@@ -21,6 +21,12 @@ export default function LoginPage() {
           </Suspense>
         </div>
         <p className="mt-6 text-center text-sm text-muted-foreground">
+          Ainda não tem conta?{" "}
+          <Link href="/cadastro" className="font-medium text-gold underline-offset-4 hover:underline">
+            Crie sua agenda grátis
+          </Link>
+        </p>
+        <p className="mt-2 text-center text-sm text-muted-foreground">
           <Link href="/" className="underline-offset-4 hover:text-foreground hover:underline">
             ← Voltar ao site de agendamento
           </Link>

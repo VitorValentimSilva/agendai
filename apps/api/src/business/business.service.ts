@@ -8,8 +8,16 @@ import type { SlotRules } from '../availability/availability.engine.js';
 export class BusinessService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** Negócio servido pelas rotas públicas desta instalação (white-label: 1 por deploy). */
-  async getPublicBusiness(): Promise<Business> {
+  /**
+   * Negócio servido pelas rotas públicas. Com `slug` (subdomínio ou /n/slug), busca esse negócio;
+   * sem slug, usa o negócio padrão da instalação (BUSINESS_SLUG ou o primeiro cadastrado).
+   */
+  async getPublicBusiness(slug?: string): Promise<Business> {
+    if (slug) {
+      const tenant = await this.prisma.business.findUnique({ where: { slug } });
+      if (!tenant) throw new NotFoundException('Negócio não encontrado. Confira o endereço.');
+      return tenant;
+    }
     const bySlug = await this.prisma.business.findUnique({ where: { slug: env.businessSlug } });
     const business = bySlug ?? (await this.prisma.business.findFirst({ orderBy: { createdAt: 'asc' } }));
     if (!business) throw new NotFoundException('Nenhum negócio configurado. Rode o seed da API.');

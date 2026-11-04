@@ -52,7 +52,7 @@ export function AgendaView() {
   const me = useMe();
   const professionals = useAdminProfessionals();
   const isPro = me.data?.role === "PROFESSIONAL";
-  const tz = DEFAULT_TZ;
+  const tz = me.data?.businessTimezone ?? DEFAULT_TZ;
   const today = todayInTz(tz);
 
   const [view, setView] = useState<"day" | "week">("day");
