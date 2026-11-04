@@ -1,4 +1,4 @@
-import { Test } from '@nestjs/testing';
+import { Test, type TestingModuleBuilder } from '@nestjs/testing';
 import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from '../src/app.module.js';
@@ -12,9 +12,10 @@ export interface TestContext {
   http: () => ReturnType<typeof request>;
 }
 
-export async function createTestApp(): Promise<TestContext> {
-  const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
-  const app = configureApp(moduleRef.createNestApplication());
+export async function createTestApp(configure?: (builder: TestingModuleBuilder) => TestingModuleBuilder): Promise<TestContext> {
+  const builder = Test.createTestingModule({ imports: [AppModule] });
+  const moduleRef = await (configure ? configure(builder) : builder).compile();
+  const app = configureApp(moduleRef.createNestApplication({ rawBody: true }));
   await app.listen(0, '127.0.0.1');
   const url = await app.getUrl();
   const prisma = app.get(PrismaService);

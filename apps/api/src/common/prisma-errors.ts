@@ -12,6 +12,18 @@ export function isOverlapViolation(error: unknown): boolean {
   return false;
 }
 
+/**
+ * Conflito de concorrência ao reservar: além da violação da exclusion constraint, inserções
+ * simultâneas que colidem nela podem gerar deadlock (40P01) ou falha de serialização (40001).
+ * O Postgres aborta só uma das transações — para o cliente é o mesmo caso: o horário foi ocupado.
+ */
+export function isBookingConflict(error: unknown): boolean {
+  if (isOverlapViolation(error)) return true;
+  if (!(error instanceof Error)) return false;
+  const text = `${error.message} ${error instanceof Prisma.PrismaClientKnownRequestError ? JSON.stringify(error.meta ?? {}) : ''}`;
+  return /40P01|40001|deadlock detected|could not serialize/i.test(text);
+}
+
 export function isUniqueViolation(error: unknown, field?: string): boolean {
   if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== 'P2002') return false;
   if (!field) return true;

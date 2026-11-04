@@ -36,6 +36,10 @@ export class OpeningHoursDto {
 export class PublicBusinessDto {
   @ApiProperty() name: string;
   @ApiProperty() slug: string;
+  @ApiProperty({ example: 'barbearia' }) segment: string;
+  @ApiProperty({ enum: ['NONE', 'DEPOSIT', 'FULL'], enumName: 'PaymentMode' }) paymentMode: 'NONE' | 'DEPOSIT' | 'FULL';
+  @ApiProperty() depositPercent: number;
+  @ApiProperty() paymentExpiryMinutes: number;
   @ApiProperty({ type: String, nullable: true }) description: string | null;
   @ApiProperty() phone: string;
   @ApiProperty() whatsapp: string;

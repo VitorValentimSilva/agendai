@@ -26,7 +26,8 @@ export class DashboardService {
     const today = toLocalDate(now, tz);
     const scope = {
       businessId: business.id,
-      ...(user.role === 'PROFESSIONAL' && user.professionalId ? { professionalId: user.professionalId } : {}),
+      // PROFESSIONAL sem profissional vinculado não vê nada (nunca a agenda de todos)
+      ...(user.role === 'PROFESSIONAL' ? { professionalId: user.professionalId ?? '__none__' } : {}),
     };
 
     const monthStart: LocalDate = { ...today, day: 1 };

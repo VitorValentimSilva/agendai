@@ -19,6 +19,8 @@ enum AppointmentStatus {
   COMPLETED
   CANCELED
   NO_SHOW
+  /// Aguardando pagamento Pix (bloqueia o horário até expirar)
+  PENDING_PAYMENT
 }
 
 enum AppointmentSource {
@@ -26,10 +28,36 @@ enum AppointmentSource {
   MANUAL
 }
 
+enum PaymentMode {
+  NONE
+  DEPOSIT
+  FULL
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  EXPIRED
+  CANCELED
+  REFUNDED
+}
+
+enum MessageDirection {
+  OUT
+  IN
+}
+
+enum WaitlistStatus {
+  ACTIVE
+  NOTIFIED
+  BOOKED
+  CANCELED
+}
+
 model Business {
-  id                      String   @id @default(cuid())
+  id                      String      @id @default(cuid())
   name                    String
-  slug                    String   @unique
+  slug                    String      @unique
   description             String?
   phone                   String
   whatsapp                String
@@ -38,17 +66,28 @@ model Business {
   addressLine             String
   city                    String
   state                   String
-  timezone                String   @default("America/Sao_Paulo")
+  timezone                String      @default("America/Sao_Paulo")
   /// Intervalo entre o início de dois horários consecutivos (minutos)
-  slotIntervalMinutes     Int      @default(30)
+  slotIntervalMinutes     Int         @default(30)
   /// Antecedência mínima para agendar online (minutos)
-  minAdvanceMinutes       Int      @default(60)
+  minAdvanceMinutes       Int         @default(60)
   /// Quantos dias à frente o cliente pode agendar
-  maxAdvanceDays          Int      @default(30)
+  maxAdvanceDays          Int         @default(30)
   /// Até quantas horas antes o cliente pode cancelar/remarcar pelo link
-  cancellationPolicyHours Int      @default(2)
-  createdAt               DateTime @default(now()) @db.Timestamptz(3)
-  updatedAt               DateTime @updatedAt @db.Timestamptz(3)
+  cancellationPolicyHours Int         @default(2)
+  /// Segmento escolhido no cadastro (barbearia, salao, clinica, estudio)
+  segment                 String      @default("barbearia")
+  /// Pix: nenhum, sinal (depositPercent) ou valor total
+  paymentMode             PaymentMode @default(NONE)
+  depositPercent          Int         @default(30)
+  paymentExpiryMinutes    Int         @default(30)
+  /// Access token do Mercado Pago do negócio, cifrado (AES-256-GCM)
+  mercadoPagoTokenEnc     String?
+  /// Lembretes automáticos por WhatsApp
+  remindersEnabled        Boolean     @default(true)
+  reminderHoursBefore     Int         @default(24)
+  createdAt               DateTime    @default(now()) @db.Timestamptz(3)
+  updatedAt               DateTime    @updatedAt @db.Timestamptz(3)
 
   users         User[]
   professionals Professional[]
@@ -56,6 +95,8 @@ model Business {
   timeOffs      TimeOff[]
   customers     Customer[]
   appointments  Appointment[]
+  messages      MessageLog[]
+  waitlist      WaitlistEntry[]
 }
 
 model User {
@@ -74,15 +115,23 @@ model User {
 }
 
 model Professional {
-  id         String   @id @default(cuid())
-  businessId String
-  name       String
-  bio        String?
-  avatarUrl  String?
-  active     Boolean  @default(true)
-  sortOrder  Int      @default(0)
-  createdAt  DateTime @default(now()) @db.Timestamptz(3)
-  updatedAt  DateTime @updatedAt @db.Timestamptz(3)
+  id                    String   @id @default(cuid())
+  businessId            String
+  name                  String
+  bio                   String?
+  avatarUrl             String?
+  active                Boolean  @default(true)
+  sortOrder             Int      @default(0)
+  /// Percentual de comissão sobre atendimentos concluídos
+  commissionPercent     Int      @default(40)
+  /// Token secreto do feed iCal (assinar no Google Agenda/Apple/Outlook)
+  calendarFeedToken     String?  @unique
+  /// Google Calendar (OAuth): refresh token cifrado e agenda de destino
+  googleRefreshTokenEnc String?
+  googleCalendarId      String?
+  googleEmail           String?
+  createdAt             DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt             DateTime @updatedAt @db.Timestamptz(3)
 
   business     Business              @relation(fields: [businessId], references: [id], onDelete: Cascade)
   user         User?
@@ -90,6 +139,7 @@ model Professional {
   workingHours WorkingHours[]
   timeOffs     TimeOff[]
   appointments Appointment[]
+  waitlist     WaitlistEntry[]
 
   @@index([businessId])
 }
@@ -165,8 +215,10 @@ model Customer {
   createdAt  DateTime @default(now()) @db.Timestamptz(3)
   updatedAt  DateTime @updatedAt @db.Timestamptz(3)
 
-  business     Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  business     Business        @relation(fields: [businessId], references: [id], onDelete: Cascade)
   appointments Appointment[]
+  waitlist     WaitlistEntry[]
+  messages     MessageLog[]
 
   @@unique([businessId, whatsapp])
 }
@@ -186,6 +238,12 @@ model Appointment {
   manageToken    String            @unique
   notes          String?
   canceledAt     DateTime?         @db.Timestamptz(3)
+  /// Lembrete por WhatsApp já enviado
+  reminderSentAt DateTime?         @db.Timestamptz(3)
+  /// Como foi confirmado: WHATSAPP, PAINEL, PIX
+  confirmedVia   String?
+  /// Evento correspondente no Google Calendar do profissional
+  googleEventId  String?
   createdAt      DateTime          @default(now()) @db.Timestamptz(3)
   updatedAt      DateTime          @updatedAt @db.Timestamptz(3)
 
@@ -193,8 +251,82 @@ model Appointment {
   service      Service      @relation(fields: [serviceId], references: [id], onDelete: Restrict)
   professional Professional @relation(fields: [professionalId], references: [id], onDelete: Restrict)
   customer     Customer     @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  payment      Payment?
+  messages     MessageLog[]
 
   @@index([businessId, startsAt])
   @@index([professionalId, startsAt])
   @@index([customerId])
+  @@index([status, reminderSentAt, startsAt])
+}
+
+/// Cobrança Pix de um agendamento (sinal ou valor total)
+model Payment {
+  id                String        @id @default(cuid())
+  appointmentId     String        @unique
+  /// MERCADO_PAGO ou SIMULATED
+  provider          String
+  providerPaymentId String?       @unique
+  amountCents       Int
+  status            PaymentStatus @default(PENDING)
+  qrCode            String?
+  qrCodeBase64      String?
+  ticketUrl         String?
+  expiresAt         DateTime      @db.Timestamptz(3)
+  paidAt            DateTime?     @db.Timestamptz(3)
+  createdAt         DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime      @updatedAt @db.Timestamptz(3)
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+
+  @@index([status, expiresAt])
+}
+
+/// Histórico de mensagens de WhatsApp (enviadas e recebidas)
+model MessageLog {
+  id                String           @id @default(cuid())
+  businessId        String
+  appointmentId     String?
+  customerId        String?
+  direction         MessageDirection
+  /// reminder, waitlist, reply, inbound
+  kind              String
+  phone             String
+  body              String
+  /// WHATSAPP_CLOUD ou SIMULATED
+  provider          String
+  providerMessageId String?
+  status            String           @default("sent")
+  error             String?
+  createdAt         DateTime         @default(now()) @db.Timestamptz(3)
+
+  business    Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  appointment Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  customer    Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  @@index([businessId, createdAt])
+  @@index([phone, createdAt])
+}
+
+/// Fila de espera: cliente quer um horário num dia sem vagas
+model WaitlistEntry {
+  id             String         @id @default(cuid())
+  businessId     String
+  serviceId      String
+  /// null = qualquer profissional
+  professionalId String?
+  customerId     String
+  /// Data desejada (AAAA-MM-DD no fuso do negócio)
+  date           String
+  status         WaitlistStatus @default(ACTIVE)
+  token          String         @unique
+  notifiedAt     DateTime?      @db.Timestamptz(3)
+  createdAt      DateTime       @default(now()) @db.Timestamptz(3)
+
+  business     Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  professional Professional? @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  customer     Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@unique([customerId, serviceId, date])
+  @@index([businessId, date, status])
 }

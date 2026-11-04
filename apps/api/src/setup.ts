@@ -3,6 +3,7 @@ import { DocumentBuilder, SwaggerModule, type OpenAPIObject } from '@nestjs/swag
 import cookieParser from 'cookie-parser';
 import type { Request, Response } from 'express';
 import { env, SESSION_COOKIE } from './common/env.js';
+import { originGuard, securityHeaders } from './common/security.js';
 
 const SWAGGER_UI_VERSION = '5.29.0';
 
@@ -61,7 +62,9 @@ export function configureApp(app: INestApplication): INestApplication {
   http.set('trust proxy', 1);
   http.disable('x-powered-by');
 
+  app.use(securityHeaders);
   app.use(cookieParser());
+  app.use(originGuard);
   app.enableCors({ origin: env.webOrigin, credentials: true });
   app.useGlobalPipes(
     new ValidationPipe({

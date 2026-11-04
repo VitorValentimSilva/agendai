@@ -133,7 +133,7 @@ describe('Fluxo de agendamento (e2e)', () => {
   });
 
   it('política de cancelamento: bloqueia alteração em cima da hora', async () => {
-    const business = await ctx.prisma.business.findFirstOrThrow();
+    const business = await ctx.prisma.business.findUniqueOrThrow({ where: { slug: 'navalha-de-ouro' } });
     await ctx.prisma.business.update({ where: { id: business.id }, data: { cancellationPolicyHours: 24 * 40 } });
     try {
       const slot = await findFreeSlot(ctx, serviceId, 'any');

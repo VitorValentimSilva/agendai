@@ -1,4 +1,4 @@
-import type { Appointment, Business, Customer, Professional, Service } from '@prisma/client';
+import type { Appointment, Business, Customer, Payment, Professional, Service } from '@prisma/client';
 import type { AdminAppointmentDto, PublicAppointmentDto } from './appointments.dto.js';
 import { checkCustomerChange } from './status-rules.js';
 
@@ -6,9 +6,10 @@ export type AppointmentWithRelations = Appointment & {
   service: Service;
   professional: Professional;
   customer: Customer;
+  payment: Payment | null;
 };
 
-export const appointmentInclude = { service: true, professional: true, customer: true } as const;
+export const appointmentInclude = { service: true, professional: true, customer: true, payment: true } as const;
 
 export function toPublicAppointment(a: AppointmentWithRelations, business: Business, now = new Date()): PublicAppointmentDto {
   const change = checkCustomerChange(a, business.cancellationPolicyHours, now);
@@ -30,6 +31,18 @@ export function toPublicAppointment(a: AppointmentWithRelations, business: Busin
       cancellationPolicyHours: business.cancellationPolicyHours,
     },
     manage: { canChange: change.ok, reason: change.ok ? null : change.reason, deadline: change.deadline.toISOString() },
+    payment: a.payment
+      ? {
+          status: a.payment.status,
+          provider: a.payment.provider,
+          amountCents: a.payment.amountCents,
+          qrCode: a.payment.status === 'PENDING' ? a.payment.qrCode : null,
+          qrCodeBase64: a.payment.status === 'PENDING' ? a.payment.qrCodeBase64 : null,
+          ticketUrl: a.payment.status === 'PENDING' ? a.payment.ticketUrl : null,
+          expiresAt: a.payment.expiresAt.toISOString(),
+          paidAt: a.payment.paidAt?.toISOString() ?? null,
+        }
+      : null,
   };
 }
 
@@ -48,5 +61,8 @@ export function toAdminAppointment(a: AppointmentWithRelations): AdminAppointmen
     customer: { id: a.customer.id, name: a.customer.name, whatsapp: a.customer.whatsapp, email: a.customer.email },
     manageToken: a.manageToken,
     createdAt: a.createdAt.toISOString(),
+    confirmedVia: a.confirmedVia,
+    reminderSentAt: a.reminderSentAt?.toISOString() ?? null,
+    payment: a.payment ? { status: a.payment.status, amountCents: a.payment.amountCents, provider: a.payment.provider } : null,
   };
 }

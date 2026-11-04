@@ -1,6 +1,42 @@
 {
   "openapi": "3.0.0",
   "paths": {
+    "/internal/send-reminders": {
+      "get": {
+        "operationId": "Internal_sendReminders",
+        "parameters": [
+          {
+            "name": "authorization",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReminderRunDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Envia lembretes de WhatsApp devidos (Authorization: Bearer CRON_SECRET)",
+        "tags": [
+          "Interno"
+        ]
+      }
+    },
     "/internal/reset-demo": {
       "post": {
         "operationId": "Internal_resetPost",
@@ -71,6 +107,152 @@
         ]
       }
     },
+    "/admin/reports": {
+      "get": {
+        "operationId": "Reports_report",
+        "parameters": [
+          {
+            "name": "from",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "2026-10-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "2026-10-31",
+              "type": "string"
+            }
+          },
+          {
+            "name": "professionalId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão"
+          },
+          "403": {
+            "description": "Sem permissão para o papel atual"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Relatório do período: por profissional (comissão), por serviço e totais",
+        "tags": [
+          "Painel — relatórios"
+        ]
+      }
+    },
+    "/admin/reports/appointments.csv": {
+      "get": {
+        "operationId": "Reports_csv",
+        "parameters": [
+          {
+            "name": "from",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "2026-10-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "2026-10-31",
+              "type": "string"
+            }
+          },
+          {
+            "name": "professionalId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "401": {
+            "description": "Sem sessão"
+          },
+          "403": {
+            "description": "Sem permissão para o papel atual"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Exporta os agendamentos do período em CSV (Excel pt-BR)",
+        "tags": [
+          "Painel — relatórios"
+        ]
+      }
+    },
+    "/admin/integrations": {
+      "get": {
+        "operationId": "Integrations_get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegrationsDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão"
+          },
+          "403": {
+            "description": "Sem permissão para o papel atual"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Quais integrações estão ativas (reais ou simuladas)",
+        "tags": [
+          "Painel — integrações"
+        ]
+      }
+    },
     "/auth/login": {
       "post": {
         "operationId": "Auth_login",
@@ -97,6 +279,69 @@
             }
           }
         },
+        "tags": [
+          "Painel — autenticação"
+        ]
+      }
+    },
+    "/auth/signup": {
+      "post": {
+        "operationId": "Auth_signup",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignupDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Cadastro self-service: cria o negócio, o dono e serviços iniciais",
+        "tags": [
+          "Painel — autenticação"
+        ]
+      }
+    },
+    "/auth/slug-available": {
+      "get": {
+        "operationId": "Auth_slugAvailable",
+        "parameters": [
+          {
+            "name": "slug",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SlugAvailabilityDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Verifica se o endereço (slug) está livre",
         "tags": [
           "Painel — autenticação"
         ]
@@ -142,10 +387,395 @@
         ]
       }
     },
+    "/waitlist": {
+      "post": {
+        "operationId": "WaitlistPublic_join",
+        "parameters": [
+          {
+            "name": "x-business-slug",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JoinWaitlistDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WaitlistEntryPublicDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Entrar na fila de espera de um dia sem vagas",
+        "tags": [
+          "Público"
+        ]
+      }
+    },
+    "/waitlist/{token}/leave": {
+      "post": {
+        "operationId": "WaitlistPublic_leave",
+        "parameters": [
+          {
+            "name": "x-business-slug",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "summary": "Sair da fila de espera",
+        "tags": [
+          "Público"
+        ]
+      }
+    },
+    "/admin/waitlist": {
+      "get": {
+        "operationId": "WaitlistAdmin_list",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": "ALL",
+              "type": "string",
+              "enum": [
+                "ACTIVE",
+                "NOTIFIED",
+                "BOOKED",
+                "CANCELED",
+                "ALL"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WaitlistEntryAdminDto"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão"
+          },
+          "403": {
+            "description": "Sem permissão para o papel atual"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Fila de espera (PROFESSIONAL vê a própria e as de \"qualquer profissional\")",
+        "tags": [
+          "Painel — fila de espera"
+        ]
+      }
+    },
+    "/admin/waitlist/{id}": {
+      "delete": {
+        "operationId": "WaitlistAdmin_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "401": {
+            "description": "Sem sessão"
+          },
+          "403": {
+            "description": "Sem permissão para o papel atual"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Remover da fila",
+        "tags": [
+          "Painel — fila de espera"
+        ]
+      }
+    },
+    "/calendar/{file}": {
+      "get": {
+        "operationId": "CalendarPublic_feed",
+        "parameters": [
+          {
+            "name": "file",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Feed iCal do profissional (assinar no Google Agenda/Apple/Outlook)",
+        "tags": [
+          "Agenda (feed)"
+        ]
+      }
+    },
+    "/admin/professionals/{id}/calendar-feed": {
+      "get": {
+        "operationId": "CalendarAdmin_getFeed",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UrlDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão"
+          },
+          "403": {
+            "description": "Sem permissão para o papel atual"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Link do feed iCal (null se desativado)",
+        "tags": [
+          "Painel — agenda externa"
+        ]
+      },
+      "post": {
+        "operationId": "CalendarAdmin_enableFeed",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UrlDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão"
+          },
+          "403": {
+            "description": "Sem permissão para o papel atual"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Gera um novo link do feed iCal (o anterior deixa de funcionar)",
+        "tags": [
+          "Painel — agenda externa"
+        ]
+      },
+      "delete": {
+        "operationId": "CalendarAdmin_disableFeed",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "401": {
+            "description": "Sem sessão"
+          },
+          "403": {
+            "description": "Sem permissão para o papel atual"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "tags": [
+          "Painel — agenda externa"
+        ]
+      }
+    },
+    "/admin/professionals/{id}/google/connect": {
+      "get": {
+        "operationId": "CalendarAdmin_googleConnect",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UrlDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão"
+          },
+          "403": {
+            "description": "Sem permissão para o papel atual"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "URL para conectar o Google Calendar do profissional (OAuth)",
+        "tags": [
+          "Painel — agenda externa"
+        ]
+      }
+    },
+    "/admin/professionals/{id}/google": {
+      "delete": {
+        "operationId": "CalendarAdmin_googleDisconnect",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "401": {
+            "description": "Sem sessão"
+          },
+          "403": {
+            "description": "Sem permissão para o papel atual"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "tags": [
+          "Painel — agenda externa"
+        ]
+      }
+    },
     "/business": {
       "get": {
         "operationId": "Public_business",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "x-business-slug",
+            "in": "header",
+            "description": "Slug do negócio (multiempresa). Sem ele, usa o negócio padrão.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -167,7 +797,17 @@
     "/services": {
       "get": {
         "operationId": "Public_services",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "x-business-slug",
+            "in": "header",
+            "description": "Slug do negócio (multiempresa). Sem ele, usa o negócio padrão.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -192,7 +832,17 @@
     "/professionals": {
       "get": {
         "operationId": "Public_team",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "x-business-slug",
+            "in": "header",
+            "description": "Slug do negócio (multiempresa). Sem ele, usa o negócio padrão.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -218,6 +868,15 @@
       "get": {
         "operationId": "Public_professionals",
         "parameters": [
+          {
+            "name": "x-business-slug",
+            "in": "header",
+            "description": "Slug do negócio (multiempresa). Sem ele, usa o negócio padrão.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "serviceId",
             "required": true,
@@ -252,6 +911,15 @@
       "get": {
         "operationId": "Public_slots",
         "parameters": [
+          {
+            "name": "x-business-slug",
+            "in": "header",
+            "description": "Slug do negócio (multiempresa). Sem ele, usa o negócio padrão.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "serviceId",
             "required": true,
@@ -302,6 +970,15 @@
       "get": {
         "operationId": "Public_days",
         "parameters": [
+          {
+            "name": "x-business-slug",
+            "in": "header",
+            "description": "Slug do negócio (multiempresa). Sem ele, usa o negócio padrão.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "serviceId",
             "required": true,
@@ -359,7 +1036,17 @@
     "/appointments": {
       "post": {
         "operationId": "Public_create",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "x-business-slug",
+            "in": "header",
+            "description": "Slug do negócio (multiempresa). Sem ele, usa o negócio padrão.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -396,6 +1083,15 @@
         "operationId": "Public_byToken",
         "parameters": [
           {
+            "name": "x-business-slug",
+            "in": "header",
+            "description": "Slug do negócio (multiempresa). Sem ele, usa o negócio padrão.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "token",
             "required": true,
             "in": "path",
@@ -427,6 +1123,15 @@
         "operationId": "Public_cancel",
         "parameters": [
           {
+            "name": "x-business-slug",
+            "in": "header",
+            "description": "Slug do negócio (multiempresa). Sem ele, usa o negócio padrão.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "token",
             "required": true,
             "in": "path",
@@ -457,6 +1162,15 @@
       "post": {
         "operationId": "Public_reschedule",
         "parameters": [
+          {
+            "name": "x-business-slug",
+            "in": "header",
+            "description": "Slug do negócio (multiempresa). Sem ele, usa o negócio padrão.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "token",
             "required": true,
@@ -494,10 +1208,59 @@
         ]
       }
     },
+    "/appointments/manage/{token}/simulate-payment": {
+      "post": {
+        "operationId": "Public_simulatePayment",
+        "parameters": [
+          {
+            "name": "x-business-slug",
+            "in": "header",
+            "description": "Slug do negócio (multiempresa). Sem ele, usa o negócio padrão.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicAppointmentDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Demonstração: marca como pago um Pix do modo simulado",
+        "tags": [
+          "Público"
+        ]
+      }
+    },
     "/appointments/manage/{token}/ics": {
       "get": {
         "operationId": "Public_ics",
         "parameters": [
+          {
+            "name": "x-business-slug",
+            "in": "header",
+            "description": "Slug do negócio (multiempresa). Sem ele, usa o negócio padrão.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "token",
             "required": true,
@@ -1533,6 +2296,170 @@
           "Painel — configurações"
         ]
       }
+    },
+    "/admin/messages": {
+      "get": {
+        "operationId": "Messages_list",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": 50,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MessageDto"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão"
+          },
+          "403": {
+            "description": "Sem permissão para o papel atual"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Histórico de WhatsApp (PROFESSIONAL vê só os da própria agenda)",
+        "tags": [
+          "Painel — mensagens"
+        ]
+      }
+    },
+    "/admin/messages/send-reminders": {
+      "post": {
+        "operationId": "Messages_sendReminders",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReminderRunResultDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão"
+          },
+          "403": {
+            "description": "Sem permissão para o papel atual"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Envia agora os lembretes devidos deste negócio",
+        "tags": [
+          "Painel — mensagens"
+        ]
+      }
+    },
+    "/admin/appointments/{id}/remind": {
+      "post": {
+        "operationId": "Messages_remind",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReminderRunResultDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão"
+          },
+          "403": {
+            "description": "Sem permissão para o papel atual"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Envia o lembrete de um agendamento agora",
+        "tags": [
+          "Painel — mensagens"
+        ]
+      }
+    },
+    "/admin/messages/simulate-reply": {
+      "post": {
+        "operationId": "Messages_simulate",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SimulateReplyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SimulateReplyResultDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão"
+          },
+          "403": {
+            "description": "Sem permissão para o papel atual"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Demonstração: simula a resposta do cliente (1 confirma, 2 cancela). Só no modo simulado.",
+        "tags": [
+          "Painel — mensagens"
+        ]
+      }
     }
   },
   "info": {
@@ -1557,6 +2484,21 @@
       }
     },
     "schemas": {
+      "ReminderRunDto": {
+        "type": "object",
+        "properties": {
+          "sent": {
+            "type": "number"
+          },
+          "failed": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "sent",
+          "failed"
+        ]
+      },
       "ResetDemoResultDto": {
         "type": "object",
         "properties": {
@@ -1574,6 +2516,172 @@
           "ok",
           "appointments",
           "customers"
+        ]
+      },
+      "ProfessionalReportDto": {
+        "type": "object",
+        "properties": {
+          "professionalId": {
+            "type": "string"
+          },
+          "professionalName": {
+            "type": "string"
+          },
+          "commissionPercent": {
+            "type": "number"
+          },
+          "appointments": {
+            "type": "number"
+          },
+          "completed": {
+            "type": "number"
+          },
+          "noShows": {
+            "type": "number"
+          },
+          "canceled": {
+            "type": "number"
+          },
+          "revenueCents": {
+            "type": "number"
+          },
+          "commissionCents": {
+            "type": "number"
+          },
+          "averageTicketCents": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "professionalId",
+          "professionalName",
+          "commissionPercent",
+          "appointments",
+          "completed",
+          "noShows",
+          "canceled",
+          "revenueCents",
+          "commissionCents",
+          "averageTicketCents"
+        ]
+      },
+      "ServiceReportDto": {
+        "type": "object",
+        "properties": {
+          "serviceId": {
+            "type": "string"
+          },
+          "serviceName": {
+            "type": "string"
+          },
+          "completed": {
+            "type": "number"
+          },
+          "revenueCents": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "serviceId",
+          "serviceName",
+          "completed",
+          "revenueCents"
+        ]
+      },
+      "ReportTotalsDto": {
+        "type": "object",
+        "properties": {
+          "appointments": {
+            "type": "number"
+          },
+          "completed": {
+            "type": "number"
+          },
+          "noShows": {
+            "type": "number"
+          },
+          "canceled": {
+            "type": "number"
+          },
+          "revenueCents": {
+            "type": "number"
+          },
+          "commissionCents": {
+            "type": "number"
+          },
+          "netRevenueCents": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "appointments",
+          "completed",
+          "noShows",
+          "canceled",
+          "revenueCents",
+          "commissionCents",
+          "netRevenueCents"
+        ]
+      },
+      "ReportDto": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          },
+          "professionals": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProfessionalReportDto"
+            }
+          },
+          "services": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ServiceReportDto"
+            }
+          },
+          "totals": {
+            "$ref": "#/components/schemas/ReportTotalsDto"
+          }
+        },
+        "required": [
+          "from",
+          "to",
+          "professionals",
+          "services",
+          "totals"
+        ]
+      },
+      "IntegrationsDto": {
+        "type": "object",
+        "properties": {
+          "whatsapp": {
+            "type": "string",
+            "enum": [
+              "WHATSAPP_CLOUD",
+              "SIMULATED"
+            ]
+          },
+          "pix": {
+            "type": "string",
+            "enum": [
+              "MERCADO_PAGO",
+              "SIMULATED"
+            ]
+          },
+          "google": {
+            "type": "boolean",
+            "description": "Sincronização com Google Calendar disponível"
+          }
+        },
+        "required": [
+          "whatsapp",
+          "pix",
+          "google"
         ]
       },
       "LoginDto": {
@@ -1621,6 +2729,12 @@
           },
           "businessName": {
             "type": "string"
+          },
+          "businessSlug": {
+            "type": "string"
+          },
+          "businessTimezone": {
+            "type": "string"
           }
         },
         "required": [
@@ -1630,7 +2744,259 @@
           "role",
           "professionalId",
           "businessId",
-          "businessName"
+          "businessName",
+          "businessSlug",
+          "businessTimezone"
+        ]
+      },
+      "SignupDto": {
+        "type": "object",
+        "properties": {
+          "businessName": {
+            "type": "string",
+            "example": "Barbearia do Zé"
+          },
+          "slug": {
+            "type": "string",
+            "example": "barbearia-do-ze",
+            "description": "Endereço do seu link: letras minúsculas, números e hífen."
+          },
+          "segment": {
+            "type": "string",
+            "enum": [
+              "barbearia",
+              "salao",
+              "clinica",
+              "estudio"
+            ]
+          },
+          "ownerName": {
+            "type": "string",
+            "example": "José da Silva"
+          },
+          "email": {
+            "type": "string",
+            "example": "ze@barbearia.com"
+          },
+          "password": {
+            "type": "string",
+            "example": "senha-forte-123"
+          },
+          "whatsapp": {
+            "type": "string",
+            "example": "(19) 99999-0000"
+          },
+          "city": {
+            "type": "string",
+            "example": "Campinas"
+          },
+          "state": {
+            "type": "string",
+            "example": "SP"
+          },
+          "addressLine": {
+            "type": "string",
+            "example": "Rua das Flores, 100 — Centro"
+          }
+        },
+        "required": [
+          "businessName",
+          "slug",
+          "segment",
+          "ownerName",
+          "email",
+          "password",
+          "whatsapp",
+          "city",
+          "state",
+          "addressLine"
+        ]
+      },
+      "SlugAvailabilityDto": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string"
+          },
+          "available": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "slug",
+          "available",
+          "reason"
+        ]
+      },
+      "CustomerInputDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "João da Silva"
+          },
+          "whatsapp": {
+            "type": "string",
+            "example": "(19) 99999-0000",
+            "description": "WhatsApp com DDD; aceita máscara."
+          },
+          "email": {
+            "type": "string",
+            "example": "joao@email.com"
+          }
+        },
+        "required": [
+          "name",
+          "whatsapp"
+        ]
+      },
+      "JoinWaitlistDto": {
+        "type": "object",
+        "properties": {
+          "serviceId": {
+            "type": "string"
+          },
+          "professionalId": {
+            "type": "string",
+            "description": "ID do profissional ou \"any\"",
+            "example": "any"
+          },
+          "date": {
+            "type": "string",
+            "example": "2026-11-20"
+          },
+          "customer": {
+            "$ref": "#/components/schemas/CustomerInputDto"
+          }
+        },
+        "required": [
+          "serviceId",
+          "professionalId",
+          "date",
+          "customer"
+        ]
+      },
+      "WaitlistStatus": {
+        "type": "string",
+        "enum": [
+          "ACTIVE",
+          "NOTIFIED",
+          "BOOKED",
+          "CANCELED"
+        ]
+      },
+      "WaitlistEntryPublicDto": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string"
+          },
+          "serviceName": {
+            "type": "string"
+          },
+          "professionalName": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WaitlistStatus"
+              }
+            ]
+          }
+        },
+        "required": [
+          "token",
+          "date",
+          "serviceName",
+          "professionalName",
+          "status"
+        ]
+      },
+      "WaitlistEntryAdminDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WaitlistStatus"
+              }
+            ]
+          },
+          "serviceId": {
+            "type": "string"
+          },
+          "serviceName": {
+            "type": "string"
+          },
+          "professionalId": {
+            "type": "string",
+            "nullable": true
+          },
+          "professionalName": {
+            "type": "string",
+            "nullable": true
+          },
+          "customerName": {
+            "type": "string"
+          },
+          "customerWhatsapp": {
+            "type": "string"
+          },
+          "notifiedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "date",
+          "status",
+          "serviceId",
+          "serviceName",
+          "professionalId",
+          "professionalName",
+          "customerName",
+          "customerWhatsapp",
+          "notifiedAt",
+          "createdAt"
+        ]
+      },
+      "UrlDto": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "PaymentMode": {
+        "type": "string",
+        "enum": [
+          "NONE",
+          "DEPOSIT",
+          "FULL"
         ]
       },
       "OpeningIntervalDto": {
@@ -1676,6 +3042,23 @@
           },
           "slug": {
             "type": "string"
+          },
+          "segment": {
+            "type": "string",
+            "example": "barbearia"
+          },
+          "paymentMode": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaymentMode"
+              }
+            ]
+          },
+          "depositPercent": {
+            "type": "number"
+          },
+          "paymentExpiryMinutes": {
+            "type": "number"
           },
           "description": {
             "type": "string",
@@ -1729,6 +3112,10 @@
         "required": [
           "name",
           "slug",
+          "segment",
+          "paymentMode",
+          "depositPercent",
+          "paymentExpiryMinutes",
           "description",
           "phone",
           "whatsapp",
@@ -1867,28 +3254,6 @@
           "days"
         ]
       },
-      "CustomerInputDto": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "example": "João da Silva"
-          },
-          "whatsapp": {
-            "type": "string",
-            "example": "(19) 99999-0000",
-            "description": "WhatsApp com DDD; aceita máscara."
-          },
-          "email": {
-            "type": "string",
-            "example": "joao@email.com"
-          }
-        },
-        "required": [
-          "name",
-          "whatsapp"
-        ]
-      },
       "CreateAppointmentDto": {
         "type": "object",
         "properties": {
@@ -1927,7 +3292,8 @@
           "CONFIRMED",
           "COMPLETED",
           "CANCELED",
-          "NO_SHOW"
+          "NO_SHOW",
+          "PENDING_PAYMENT"
         ]
       },
       "AppointmentServiceRefDto": {
@@ -2016,6 +3382,65 @@
           "deadline"
         ]
       },
+      "PaymentStatus": {
+        "type": "string",
+        "enum": [
+          "PENDING",
+          "PAID",
+          "EXPIRED",
+          "CANCELED",
+          "REFUNDED"
+        ]
+      },
+      "PublicPaymentDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaymentStatus"
+              }
+            ]
+          },
+          "provider": {
+            "type": "string",
+            "description": "MERCADO_PAGO ou SIMULATED"
+          },
+          "amountCents": {
+            "type": "number"
+          },
+          "qrCode": {
+            "type": "string",
+            "nullable": true,
+            "description": "Pix copia e cola (só enquanto pendente)"
+          },
+          "qrCodeBase64": {
+            "type": "string",
+            "nullable": true
+          },
+          "ticketUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "expiresAt": {
+            "type": "string"
+          },
+          "paidAt": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "status",
+          "provider",
+          "amountCents",
+          "qrCode",
+          "qrCodeBase64",
+          "ticketUrl",
+          "expiresAt",
+          "paidAt"
+        ]
+      },
       "CreatedAppointmentDto": {
         "type": "object",
         "properties": {
@@ -2057,6 +3482,15 @@
           "manage": {
             "$ref": "#/components/schemas/ManageInfoDto"
           },
+          "payment": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PublicPaymentDto"
+              }
+            ]
+          },
           "manageToken": {
             "type": "string",
             "description": "Token secreto para o cliente gerenciar o agendamento."
@@ -2074,6 +3508,7 @@
           "customerName",
           "business",
           "manage",
+          "payment",
           "manageToken"
         ]
       },
@@ -2117,6 +3552,15 @@
           },
           "manage": {
             "$ref": "#/components/schemas/ManageInfoDto"
+          },
+          "payment": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PublicPaymentDto"
+              }
+            ]
           }
         },
         "required": [
@@ -2130,7 +3574,8 @@
           "professional",
           "customerName",
           "business",
-          "manage"
+          "manage",
+          "payment"
         ]
       },
       "RescheduleDto": {
@@ -2212,6 +3657,29 @@
           "email"
         ]
       },
+      "AdminPaymentDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaymentStatus"
+              }
+            ]
+          },
+          "amountCents": {
+            "type": "number"
+          },
+          "provider": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "amountCents",
+          "provider"
+        ]
+      },
       "AdminAppointmentDto": {
         "type": "object",
         "properties": {
@@ -2262,6 +3730,24 @@
           },
           "createdAt": {
             "type": "string"
+          },
+          "confirmedVia": {
+            "type": "string",
+            "nullable": true,
+            "description": "WHATSAPP, PIX ou PAINEL"
+          },
+          "reminderSentAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "payment": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AdminPaymentDto"
+              }
+            ]
           }
         },
         "required": [
@@ -2277,7 +3763,10 @@
           "professional",
           "customer",
           "manageToken",
-          "createdAt"
+          "createdAt",
+          "confirmedVia",
+          "reminderSentAt",
+          "payment"
         ]
       },
       "DashboardDto": {
@@ -2594,6 +4083,18 @@
           "userEmail": {
             "type": "string",
             "nullable": true
+          },
+          "commissionPercent": {
+            "type": "number"
+          },
+          "hasCalendarFeed": {
+            "type": "boolean",
+            "description": "Feed iCal ativo"
+          },
+          "googleEmail": {
+            "type": "string",
+            "nullable": true,
+            "description": "Conta Google conectada"
           }
         },
         "required": [
@@ -2604,7 +4105,10 @@
           "active",
           "serviceIds",
           "workingHours",
-          "userEmail"
+          "userEmail",
+          "commissionPercent",
+          "hasCalendarFeed",
+          "googleEmail"
         ]
       },
       "ProfessionalInputDto": {
@@ -2629,6 +4133,10 @@
             "items": {
               "type": "string"
             }
+          },
+          "commissionPercent": {
+            "type": "number",
+            "description": "Comissão (%) sobre atendimentos concluídos"
           }
         },
         "required": [
@@ -2657,6 +4165,10 @@
             "items": {
               "type": "string"
             }
+          },
+          "commissionPercent": {
+            "type": "number",
+            "description": "Comissão (%) sobre atendimentos concluídos"
           }
         }
       },
@@ -2893,6 +4405,32 @@
           },
           "cancellationPolicyHours": {
             "type": "number"
+          },
+          "segment": {
+            "type": "string"
+          },
+          "remindersEnabled": {
+            "type": "boolean"
+          },
+          "reminderHoursBefore": {
+            "type": "number"
+          },
+          "paymentMode": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaymentMode"
+              }
+            ]
+          },
+          "depositPercent": {
+            "type": "number"
+          },
+          "paymentExpiryMinutes": {
+            "type": "number"
+          },
+          "hasMercadoPagoToken": {
+            "type": "boolean",
+            "description": "Há um token do Mercado Pago salvo (o valor nunca é devolvido)"
           }
         },
         "required": [
@@ -2911,7 +4449,14 @@
           "slotIntervalMinutes",
           "minAdvanceMinutes",
           "maxAdvanceDays",
-          "cancellationPolicyHours"
+          "cancellationPolicyHours",
+          "segment",
+          "remindersEnabled",
+          "reminderHoursBefore",
+          "paymentMode",
+          "depositPercent",
+          "paymentExpiryMinutes",
+          "hasMercadoPagoToken"
         ]
       },
       "UpdateBusinessDto": {
@@ -2961,8 +4506,145 @@
           },
           "cancellationPolicyHours": {
             "type": "number"
+          },
+          "remindersEnabled": {
+            "type": "boolean"
+          },
+          "reminderHoursBefore": {
+            "type": "number"
+          },
+          "paymentMode": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaymentMode"
+              }
+            ]
+          },
+          "depositPercent": {
+            "type": "number"
+          },
+          "paymentExpiryMinutes": {
+            "type": "number"
+          },
+          "mercadoPagoToken": {
+            "type": "string",
+            "nullable": true,
+            "description": "Access token do Mercado Pago (vazio/null remove). Guardado cifrado."
           }
         }
+      },
+      "MessageDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "OUT",
+              "IN"
+            ]
+          },
+          "kind": {
+            "type": "string",
+            "description": "reminder, waitlist, reply, inbound"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string",
+            "nullable": true
+          },
+          "appointmentId": {
+            "type": "string",
+            "nullable": true
+          },
+          "customerName": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "direction",
+          "kind",
+          "phone",
+          "body",
+          "provider",
+          "status",
+          "error",
+          "appointmentId",
+          "customerName",
+          "createdAt"
+        ]
+      },
+      "ReminderRunResultDto": {
+        "type": "object",
+        "properties": {
+          "sent": {
+            "type": "number"
+          },
+          "failed": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "sent",
+          "failed"
+        ]
+      },
+      "SimulateReplyDto": {
+        "type": "object",
+        "properties": {
+          "appointmentId": {
+            "type": "string"
+          },
+          "reply": {
+            "type": "string",
+            "enum": [
+              "1",
+              "2"
+            ],
+            "description": "1 = confirmar, 2 = cancelar"
+          }
+        },
+        "required": [
+          "appointmentId",
+          "reply"
+        ]
+      },
+      "SimulateReplyResultDto": {
+        "type": "object",
+        "properties": {
+          "handled": {
+            "type": "boolean"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "confirmed",
+              "canceled",
+              "rejected"
+            ]
+          }
+        },
+        "required": [
+          "handled"
+        ]
       }
     }
   }

@@ -79,3 +79,35 @@ export function useChangeStatus() {
     onError: (e) => toast.error("Não foi possível alterar o status", { description: e.message }),
   });
 }
+
+export function useIntegrations() {
+  return useQuery({ queryKey: ["admin", "integrations"], queryFn: () => unwrap(api.GET("/admin/integrations")), staleTime: 5 * 60_000 });
+}
+
+export function useReport(params: { from: string; to: string; professionalId?: string }) {
+  return useQuery({
+    queryKey: ["admin", "report", params],
+    queryFn: () =>
+      unwrap(
+        api.GET("/admin/reports", {
+          params: { query: { from: params.from, to: params.to, ...(params.professionalId ? { professionalId: params.professionalId } : {}) } },
+        }),
+      ),
+    placeholderData: (prev) => prev,
+  });
+}
+
+export function useWaitlist(status: "ACTIVE" | "NOTIFIED" | "BOOKED" | "CANCELED" | "ALL") {
+  return useQuery({
+    queryKey: ["admin", "waitlist", status],
+    queryFn: () => unwrap(api.GET("/admin/waitlist", { params: { query: { status } } })),
+  });
+}
+
+export function useMessages() {
+  return useQuery({
+    queryKey: ["admin", "messages"],
+    queryFn: () => unwrap(api.GET("/admin/messages", { params: { query: { limit: 100 } } })),
+    refetchInterval: 15_000,
+  });
+}

@@ -57,5 +57,7 @@ export function useAppointmentByToken(token: string) {
   return useQuery({
     queryKey: ["appointment", token],
     queryFn: () => unwrap(api.GET("/appointments/manage/{token}", { params: { path: { token } } })),
+    // Enquanto o Pix está pendente, consulta a cada 4s para mostrar a confirmação sozinho
+    refetchInterval: (query) => (query.state.data?.status === "PENDING_PAYMENT" ? 4000 : false),
   });
 }

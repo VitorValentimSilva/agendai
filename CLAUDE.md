@@ -29,6 +29,17 @@ Dois apps independentes, sem workspaces e sem pacote compartilhado — cada um f
 - React Compiler: evite `form.watch()` (use `useWatch`) e `useMemo` manual com dependências instáveis.
 - Dados via TanStack Query (`src/hooks/use-public.ts`, `src/hooks/use-admin.ts`) + `unwrap()` de `src/lib/api/client.ts`.
 
+## Módulos da v2 (API)
+- `src/messaging` — WhatsApp Cloud API (`WhatsAppClient`, simulado sem token), lembretes, webhook `/webhooks/whatsapp`.
+- `src/payments` — Pix Mercado Pago (`PaymentsService`), status `PENDING_PAYMENT`, webhook `/webhooks/mercadopago`.
+- `src/waitlist` — fila de espera; `src/reports` — relatórios/CSV; `src/calendar` — feed iCal e Google OAuth.
+- `AppointmentEvents` (`src/appointments/appointment-events.ts`): criar/cancelar/remarcar emite eventos; fila de espera,
+  Pix e Google se registram como ouvintes. Use `AppointmentsService.cancel/confirm` (nunca `update` direto de status).
+- Multiempresa: rotas públicas leem o header `x-business-slug` (`@TenantSlug()`); o proxy do Next (`src/proxy.ts`)
+  preenche a partir do subdomínio ou do cookie do link `/n/slug`.
+- Segredos de terceiros sempre cifrados com `encryptSecret` (`src/common/crypto.ts`) e nunca devolvidos nas respostas.
+- Integrações externas têm modo simulado sem credenciais; nos testes e2e, sobrescreva o client (`createTestApp(b => b.overrideProvider(...))`).
+
 ## Convenções
 - Imports relativos com sufixo `.js` (ESM/nodenext). TypeScript estrito.
 - Datas: tudo em UTC no banco (`timestamptz`); regras no fuso do negócio (`Business.timezone`).

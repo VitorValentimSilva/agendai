@@ -8,11 +8,11 @@ const fraunces = Fraunces({ variable: "--font-fraunces", subsets: ["latin"], dis
 
 export const metadata: Metadata = {
   title: {
-    default: "Barbearia Navalha de Ouro — Agende online",
-    template: "%s · Navalha de Ouro",
+    default: "Agende online",
+    template: "%s",
   },
   description:
-    "Agende seu corte, barba e mais na Barbearia Navalha de Ouro (Campinas – SP) em menos de um minuto. Demonstração do Agendaí.",
+    "Agendamento online em menos de um minuto. Feito com Agendaí — agenda white-label para barbearias, salões, clínicas e estúdios.",
   applicationName: "Agendaí",
 };
 

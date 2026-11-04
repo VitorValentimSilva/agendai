@@ -68,6 +68,45 @@ try {
     await page.goto(`${WEB_URL}/admin/servicos`, { waitUntil: "networkidle0" });
     await settle(page, 800);
     await shot(page, `11-servicos${suffix}`);
+    for (const [route, name] of [
+      ["relatorios", "12-relatorios"],
+      ["mensagens", "13-mensagens"],
+      ["fila-de-espera", "14-fila-de-espera"],
+      ["configuracoes", "15-configuracoes"],
+    ]) {
+      await page.goto(`${WEB_URL}/admin/${route}`, { waitUntil: "networkidle0" });
+      await settle(page, 800);
+      await shot(page, `${name}${suffix}`);
+    }
+
+    // Pix: ativa o sinal, agenda e mostra a tela de pagamento (modo simulado)
+    await page.evaluate(() =>
+      fetch("/api/admin/business", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ paymentMode: "DEPOSIT", depositPercent: 30 }),
+      }),
+    );
+    await page.deleteCookie(...(await page.cookies()));
+    await bookingUntil(page, 5, { name: "Paula Pix", whatsapp: "19981234567" });
+    await clickText(page, "button", "Confirmar e pagar com Pix");
+    await page.waitForSelector("#pix-title", { timeout: 15_000 });
+    await settle(page, 800);
+    await shot(page, `16-pix${suffix}`);
+    await login(page, "demo@agendai.app");
+    await page.evaluate(() =>
+      fetch("/api/admin/business", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ paymentMode: "NONE" }),
+      }),
+    );
+
+    // Cadastro self-service
+    await page.deleteCookie(...(await page.cookies()));
+    await page.goto(`${WEB_URL}/cadastro`, { waitUntil: "networkidle0" });
+    await settle(page);
+    await shot(page, `17-cadastro${suffix}`);
     await page.close();
   }
 } finally {

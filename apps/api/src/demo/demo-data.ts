@@ -295,6 +295,8 @@ export async function resetDemo(prisma: PrismaClient, now = new Date()): Promise
     }),
   });
 
+  await seedMessagesAndWaitlist(prisma, business, now, rand);
+
   return {
     businessId: business.id,
     services: services.size,
@@ -307,4 +309,80 @@ export async function resetDemo(prisma: PrismaClient, now = new Date()): Promise
 function nextWeekday(from: LocalDate, weekday: number): LocalDate {
   const diff = (weekday - weekdayOf(from) + 7) % 7;
   return addCalendarDays(from, diff);
+}
+
+/**
+ * Histórico de WhatsApp (modo simulado) e fila de espera, para o painel não começar vazio:
+ * lembretes dos agendamentos das próximas 24h, algumas respostas "1" e uma inscrição na fila.
+ */
+async function seedMessagesAndWaitlist(
+  prisma: PrismaClient,
+  business: { id: string; name: string },
+  now: Date,
+  rand: () => number,
+): Promise<void> {
+  const upcoming = await prisma.appointment.findMany({
+    where: { businessId: business.id, status: { in: ['SCHEDULED', 'CONFIRMED'] }, startsAt: { gt: now, lte: new Date(now.getTime() + 24 * 3_600_000) } },
+    include: { customer: true, service: true, professional: true },
+    orderBy: { startsAt: 'asc' },
+    take: 8,
+  });
+  const fmt = new Intl.DateTimeFormat('pt-BR', { timeZone: TZ, weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
+  let minutesAgo = 180;
+  for (const a of upcoming) {
+    const sentAt = new Date(now.getTime() - minutesAgo * 60_000);
+    minutesAgo -= 15;
+    const first = a.customer.name.split(' ')[0];
+    await prisma.messageLog.create({
+      data: {
+        businessId: business.id,
+        appointmentId: a.id,
+        customerId: a.customerId,
+        direction: 'OUT',
+        kind: 'reminder',
+        phone: a.customer.whatsapp,
+        body: `Olá, ${first}! Lembrete do seu horário em *${business.name}*:\n${a.service.name} com ${a.professional.name}, ${fmt.format(a.startsAt)}.\n\nResponda *1* para *confirmar* ou *2* para *cancelar*.`,
+        provider: 'SIMULATED',
+        providerMessageId: `sim_seed_${a.id}`,
+        createdAt: sentAt,
+      },
+    });
+    await prisma.appointment.update({ where: { id: a.id }, data: { reminderSentAt: sentAt } });
+    if (rand() < 0.6) {
+      const repliedAt = new Date(sentAt.getTime() + 6 * 60_000);
+      await prisma.messageLog.createMany({
+        data: [
+          { businessId: business.id, appointmentId: a.id, customerId: a.customerId, direction: 'IN', kind: 'inbound', phone: a.customer.whatsapp, body: '1', provider: 'SIMULATED', createdAt: repliedAt },
+          {
+            businessId: business.id,
+            appointmentId: a.id,
+            customerId: a.customerId,
+            direction: 'OUT',
+            kind: 'reply',
+            phone: a.customer.whatsapp,
+            body: `Perfeito, ${first}! Seu horário de ${a.service.name} está confirmado. Até lá!`,
+            provider: 'SIMULATED',
+            createdAt: new Date(repliedAt.getTime() + 1000),
+          },
+        ],
+      });
+      await prisma.appointment.update({ where: { id: a.id }, data: { status: 'CONFIRMED', confirmedVia: 'WHATSAPP' } });
+    }
+  }
+
+  // Fila de espera: dois clientes querendo um sábado
+  const saturday = (() => {
+    const today = toLocalDate(now, TZ);
+    return addCalendarDays(today, ((6 - weekdayOf(today) + 7) % 7) || 7);
+  })();
+  const date = `${saturday.year}-${String(saturday.month).padStart(2, '0')}-${String(saturday.day).padStart(2, '0')}`;
+  const service = await prisma.service.findFirst({ where: { businessId: business.id, name: 'Corte' } });
+  const waiting = await prisma.customer.findMany({ where: { businessId: business.id }, orderBy: { name: 'desc' }, take: 2 });
+  if (service) {
+    for (const c of waiting) {
+      await prisma.waitlistEntry.create({
+        data: { businessId: business.id, serviceId: service.id, customerId: c.id, date, token: generateManageToken() },
+      });
+    }
+  }
 }

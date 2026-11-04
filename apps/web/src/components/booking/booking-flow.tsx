@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -54,12 +54,16 @@ export function BookingFlow() {
   const services = useServices();
 
   // Pré-seleção vinda da página do negócio (?servico=...)
+  // Pré-seleção vinda da página do negócio ou do aviso da fila de espera
+  // (?servico=...&profissional=...&data=AAAA-MM-DD)
   const preselected = params.get("servico") ?? undefined;
-  const [rawStep, setStep] = useState(preselected ? 1 : 0);
+  const preProfessional = preselected ? (params.get("profissional") ?? undefined) : undefined;
+  const preDate = /^\d{4}-\d{2}-\d{2}$/.test(params.get("data") ?? "") ? params.get("data")! : undefined;
+  const [rawStep, setStep] = useState(preselected ? (preProfessional || preDate ? 2 : 1) : 0);
   const [direction, setDirection] = useState(1);
   const [serviceId, setServiceId] = useState<string | undefined>(preselected);
-  const [professionalId, setProfessionalId] = useState<string>();
-  const [date, setDate] = useState<string>();
+  const [professionalId, setProfessionalId] = useState<string | undefined>(preselected && preDate ? (preProfessional ?? "any") : preProfessional);
+  const [date, setDate] = useState<string | undefined>(preDate);
   const [slot, setSlot] = useState<Slot>();
   const [customer, setCustomer] = useState<CustomerForm>();
 
@@ -114,8 +118,15 @@ export function BookingFlow() {
     },
   });
 
-  const summary = useMemo(
-    () => [
+  // Mesmo cálculo da API (sinal arredondado para cima)
+  const pixAmount = (() => {
+    const b = business.data;
+    if (!b || !service || b.paymentMode === "NONE" || service.priceCents <= 0) return 0;
+    if (b.paymentMode === "FULL") return service.priceCents;
+    return Math.max(1, Math.ceil((service.priceCents * b.depositPercent) / 100));
+  })();
+
+  const summary = [
       { icon: Scissors, label: "Serviço", value: service ? `${service.name} · ${formatDuration(service.durationMinutes)}` : undefined },
       {
         icon: User,
@@ -127,9 +138,7 @@ export function BookingFlow() {
         label: "Data e hora",
         value: slot ? `${formatDateLong(slot.start, tz)} às ${formatTime(slot.start, tz)}` : undefined,
       },
-    ],
-    [service, professional, professionalId, slot, tz],
-  );
+  ];
 
   if (services.isError || business.isError) {
     const err = services.error ?? business.error;
@@ -250,6 +259,8 @@ export function BookingFlow() {
                     }}
                     slot={slot}
                     onSlotChange={setSlot}
+                    openWeekdays={new Set(business.data.openingHours.filter((d) => d.intervals.length > 0).map((d) => d.weekday))}
+                    allowWaitlist
                   />
                   <StepNav onBack={() => go(1)}>
                     <Button size="lg" disabled={!slot} onClick={() => go(3)}>
@@ -323,13 +334,16 @@ export function BookingFlow() {
                   {business.data && (
                     <p className="mt-4 flex items-start gap-2 text-sm text-muted-foreground">
                       <ShieldCheck className="mt-0.5 size-4 shrink-0 text-gold" />
-                      Você poderá remarcar ou cancelar pelo link do agendamento até {business.data.cancellationPolicyHours}h antes. Pagamento no local.
+                      Você poderá remarcar ou cancelar pelo link do agendamento até {business.data.cancellationPolicyHours}h antes.
+                      {pixAmount > 0
+                        ? ` Para confirmar, pague ${pixAmount < service.priceCents ? `o sinal de ${formatPrice(pixAmount)} (${business.data.depositPercent}%)` : formatPrice(pixAmount)} via Pix em até ${business.data.paymentExpiryMinutes} min${pixAmount < service.priceCents ? "; o restante é pago no local" : ""}.`
+                        : " Pagamento no local."}
                     </p>
                   )}
                   <StepNav onBack={() => go(3)}>
                     <Button size="lg" onClick={() => book.mutate()} disabled={book.isPending} className="min-w-52">
                       {book.isPending ? <LoaderCircle className="animate-spin" /> : <Check />}
-                      {book.isPending ? "Confirmando..." : "Confirmar agendamento"}
+                      {book.isPending ? "Confirmando..." : pixAmount > 0 ? "Confirmar e pagar com Pix" : "Confirmar agendamento"}
                     </Button>
                   </StepNav>
                 </StepShell>

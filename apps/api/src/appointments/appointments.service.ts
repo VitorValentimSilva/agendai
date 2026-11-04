@@ -6,19 +6,21 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import type { AppointmentSource, AppointmentStatus, Business, Customer } from '@prisma/client';
+import type { AppointmentSource, AppointmentStatus, Business } from '@prisma/client';
 import { PrismaService } from '../common/prisma.service.js';
 import { AvailabilityService } from '../availability/availability.service.js';
 import { localDayRange, toLocalDate, pickLeastBusyProfessional } from '../availability/availability.engine.js';
 import { generateAppointmentCode, generateManageToken } from '../common/ids.js';
-import { isOverlapViolation, isUniqueViolation } from '../common/prisma-errors.js';
-import { isValidBrazilianWhatsapp, normalizeWhatsapp } from '../common/phone.js';
+import { isBookingConflict, isUniqueViolation } from '../common/prisma-errors.js';
+import { isValidBrazilianWhatsapp } from '../common/phone.js';
 import type { SessionUser } from '../common/decorators.js';
 import { env } from '../common/env.js';
 import { formatLongDateTime } from '../common/dates.js';
 import { appointmentInclude, type AppointmentWithRelations } from './appointment.mapper.js';
+import { findOrCreateCustomer } from '../common/customers.js';
 import { checkCustomerChange, checkStatusTransition } from './status-rules.js';
 import { buildIcs } from './ics.js';
+import { AppointmentEvents } from './appointment-events.js';
 import type { CustomerInputDto } from './appointments.dto.js';
 
 export const SLOT_TAKEN_MESSAGE = 'Ops! Esse horário acabou de ser reservado por outra pessoa. Escolha outro horário, por favor.';
@@ -33,6 +35,8 @@ export interface BookingRequest {
   source: AppointmentSource;
   /** Painel: ignora antecedência mínima e limite de dias. */
   relaxed?: boolean;
+  /** Cria como PENDING_PAYMENT (segura o horário até o Pix ser pago) se o serviço tiver preço. */
+  holdForPayment?: boolean;
   now?: Date;
 }
 
@@ -41,6 +45,7 @@ export class AppointmentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly availability: AvailabilityService,
+    private readonly events: AppointmentEvents,
   ) {}
 
   async book(req: BookingRequest): Promise<AppointmentWithRelations> {
@@ -62,12 +67,12 @@ export class AppointmentsService {
     const candidates =
       req.professionalId === 'any' ? await this.orderByLeastBusy(slot.professionalIds, business, startsAt) : slot.professionalIds;
 
-    const customer = await this.upsertCustomer(business.id, req.customer);
+    const customer = await findOrCreateCustomer(this.prisma, business.id, req.customer, req.source === 'MANUAL');
     const endsAt = new Date(startsAt.getTime() + service.durationMinutes * 60_000);
 
     for (const professionalId of candidates) {
       try {
-        return await this.createWithUniqueCode({
+        const created = await this.createWithUniqueCode({
           businessId: business.id,
           serviceId: service.id,
           professionalId,
@@ -77,9 +82,12 @@ export class AppointmentsService {
           priceCents: service.priceCents,
           source: req.source,
           notes: req.notes ?? null,
+          status: req.holdForPayment && service.priceCents > 0 ? 'PENDING_PAYMENT' : 'SCHEDULED',
         });
+        await this.events.emit('created', created);
+        return created;
       } catch (error) {
-        if (isOverlapViolation(error)) continue; // alguém reservou primeiro: tenta o próximo profissional livre
+        if (isBookingConflict(error)) continue; // alguém reservou primeiro: tenta o próximo profissional livre
         throw error;
       }
     }
@@ -94,14 +102,35 @@ export class AppointmentsService {
 
   async cancelByToken(token: string, now = new Date()): Promise<AppointmentWithRelations> {
     const appointment = await this.findByToken(token);
+    // Pix ainda não pago: o cliente pode desistir a qualquer momento (libera o horário).
+    if (appointment.status === 'PENDING_PAYMENT') return this.cancel(appointment.id, now);
     const business = await this.prisma.business.findUniqueOrThrow({ where: { id: appointment.businessId } });
     const check = checkCustomerChange(appointment, business.cancellationPolicyHours, now);
     if (!check.ok) throw new UnprocessableEntityException(check.reason);
-    return this.prisma.appointment.update({
-      where: { id: appointment.id },
+    return this.cancel(appointment.id, now);
+  }
+
+  /** Cancela e avisa os ouvintes (fila de espera, Google Calendar). */
+  async cancel(id: string, now = new Date()): Promise<AppointmentWithRelations> {
+    const canceled = await this.prisma.appointment.update({
+      where: { id },
       data: { status: 'CANCELED', canceledAt: now },
       include: appointmentInclude,
     });
+    await this.events.emit('canceled', canceled);
+    // Os ouvintes podem ter alterado dados relacionados (ex.: cobrança Pix cancelada)
+    return this.prisma.appointment.findUniqueOrThrow({ where: { id }, include: appointmentInclude });
+  }
+
+  /** Confirma (pela resposta no WhatsApp ou pelo pagamento Pix). */
+  async confirm(id: string, via: 'WHATSAPP' | 'PIX' | 'PAINEL'): Promise<AppointmentWithRelations> {
+    const confirmed = await this.prisma.appointment.update({
+      where: { id },
+      data: { status: 'CONFIRMED', confirmedVia: via },
+      include: appointmentInclude,
+    });
+    await this.events.emit('status-changed', confirmed);
+    return confirmed;
   }
 
   async rescheduleByToken(token: string, newStart: string, now = new Date()): Promise<AppointmentWithRelations> {
@@ -126,13 +155,18 @@ export class AppointmentsService {
     }
     const duration = appointment.endsAt.getTime() - appointment.startsAt.getTime();
     try {
-      return await this.prisma.appointment.update({
+      const updated = await this.prisma.appointment.update({
         where: { id: appointment.id },
-        data: { startsAt, endsAt: new Date(startsAt.getTime() + duration), status: 'SCHEDULED' },
+        // Novo horário: o lembrete precisa ser reenviado
+        data: { startsAt, endsAt: new Date(startsAt.getTime() + duration), status: 'SCHEDULED', reminderSentAt: null },
         include: appointmentInclude,
       });
+      await this.events.emit('rescheduled', updated);
+      // O horário antigo ficou livre (a fila de espera pode avisar alguém)
+      await this.events.emit('slot-freed', appointment);
+      return updated;
     } catch (error) {
-      if (isOverlapViolation(error)) throw new ConflictException(SLOT_TAKEN_MESSAGE);
+      if (isBookingConflict(error)) throw new ConflictException(SLOT_TAKEN_MESSAGE);
       throw error;
     }
   }
@@ -176,11 +210,14 @@ export class AppointmentsService {
     const appointment = await this.findForUser(id, user);
     const check = checkStatusTransition(appointment, status, now);
     if (!check.ok) throw new UnprocessableEntityException(check.reason);
-    return this.prisma.appointment.update({
+    if (status === 'CANCELED') return this.cancel(id, now);
+    const updated = await this.prisma.appointment.update({
       where: { id },
-      data: { status, canceledAt: status === 'CANCELED' ? now : null },
+      data: { status, canceledAt: null, ...(status === 'CONFIRMED' ? { confirmedVia: 'PAINEL' } : {}) },
       include: appointmentInclude,
     });
+    await this.events.emit('status-changed', updated);
+    return updated;
   }
 
   // ---------- Internos ----------
@@ -196,24 +233,6 @@ export class AppointmentsService {
     return pickLeastBusyProfessional(ids, map);
   }
 
-  private async upsertCustomer(businessId: string, input: CustomerInputDto): Promise<Customer> {
-    const whatsapp = normalizeWhatsapp(input.whatsapp);
-    const data = { name: input.name, ...(input.email ? { email: input.email.toLowerCase() } : {}) };
-    try {
-      return await this.prisma.customer.upsert({
-        where: { businessId_whatsapp: { businessId, whatsapp } },
-        create: { businessId, whatsapp, ...data },
-        update: data,
-      });
-    } catch (error) {
-      // Dois pedidos simultâneos do mesmo cliente: o segundo encontra o registro criado pelo primeiro.
-      if (isUniqueViolation(error)) {
-        return this.prisma.customer.findUniqueOrThrow({ where: { businessId_whatsapp: { businessId, whatsapp } } });
-      }
-      throw error;
-    }
-  }
-
   private async createWithUniqueCode(data: {
     businessId: string;
     serviceId: string;
@@ -224,6 +243,7 @@ export class AppointmentsService {
     priceCents: number;
     source: AppointmentSource;
     notes: string | null;
+    status: AppointmentStatus;
   }): Promise<AppointmentWithRelations> {
     for (let attempt = 0; attempt < 5; attempt++) {
       try {

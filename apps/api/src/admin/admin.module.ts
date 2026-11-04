@@ -4,9 +4,10 @@ import { CatalogController } from './catalog.controller.js';
 import { CustomersController } from './customers.controller.js';
 import { DashboardService } from './dashboard.service.js';
 import { SettingsController } from './settings.controller.js';
+import { MessagesController } from './messages.controller.js';
 
 @Module({
-  controllers: [AgendaController, CatalogController, CustomersController, SettingsController],
+  controllers: [AgendaController, CatalogController, CustomersController, SettingsController, MessagesController],
   providers: [DashboardService],
 })
 export class AdminModule {}

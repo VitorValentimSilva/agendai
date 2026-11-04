@@ -2,6 +2,7 @@ import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
   ArrayMaxSize,
+  IsIn,
   IsArray,
   IsBoolean,
   IsEmail,
@@ -139,6 +140,7 @@ export class ProfessionalInputDto {
   avatarUrl?: string | null;
   @ApiPropertyOptional() @IsOptional() @IsBoolean() active?: boolean;
   @ApiPropertyOptional({ type: [String] }) @IsOptional() @IsArray() @IsString({ each: true }) serviceIds?: string[];
+  @ApiPropertyOptional({ description: 'Comissão (%) sobre atendimentos concluídos' }) @IsOptional() @IsInt() @Min(0) @Max(100) commissionPercent?: number;
 }
 
 export class UpdateProfessionalDto extends PartialType(ProfessionalInputDto) {}
@@ -152,6 +154,9 @@ export class AdminProfessionalDto {
   @ApiProperty({ type: [String] }) serviceIds: string[];
   @ApiProperty({ type: [WorkingHoursItemDto] }) workingHours: WorkingHoursItemDto[];
   @ApiProperty({ type: String, nullable: true }) userEmail: string | null;
+  @ApiProperty() commissionPercent: number;
+  @ApiProperty({ description: 'Feed iCal ativo' }) hasCalendarFeed: boolean;
+  @ApiProperty({ type: String, nullable: true, description: 'Conta Google conectada' }) googleEmail: string | null;
 }
 
 // ---------- Bloqueios ----------
@@ -230,6 +235,13 @@ export class BusinessSettingsDto {
   @ApiProperty() minAdvanceMinutes: number;
   @ApiProperty() maxAdvanceDays: number;
   @ApiProperty() cancellationPolicyHours: number;
+  @ApiProperty() segment: string;
+  @ApiProperty() remindersEnabled: boolean;
+  @ApiProperty() reminderHoursBefore: number;
+  @ApiProperty({ enum: ['NONE', 'DEPOSIT', 'FULL'], enumName: 'PaymentMode' }) paymentMode: 'NONE' | 'DEPOSIT' | 'FULL';
+  @ApiProperty() depositPercent: number;
+  @ApiProperty() paymentExpiryMinutes: number;
+  @ApiProperty({ description: 'Há um token do Mercado Pago salvo (o valor nunca é devolvido)' }) hasMercadoPagoToken: boolean;
 }
 
 export class UpdateBusinessDto {
@@ -247,4 +259,18 @@ export class UpdateBusinessDto {
   @ApiPropertyOptional() @IsOptional() @IsInt() @Min(0) @Max(10080) minAdvanceMinutes?: number;
   @ApiPropertyOptional() @IsOptional() @IsInt() @Min(1) @Max(365) maxAdvanceDays?: number;
   @ApiPropertyOptional() @IsOptional() @IsInt() @Min(0) @Max(168) cancellationPolicyHours?: number;
+  @ApiPropertyOptional() @IsOptional() @IsBoolean() remindersEnabled?: boolean;
+  @ApiPropertyOptional() @IsOptional() @IsInt() @Min(1) @Max(72) reminderHoursBefore?: number;
+  @ApiPropertyOptional({ enum: ['NONE', 'DEPOSIT', 'FULL'], enumName: 'PaymentMode' })
+  @IsOptional()
+  @IsIn(['NONE', 'DEPOSIT', 'FULL'])
+  paymentMode?: 'NONE' | 'DEPOSIT' | 'FULL';
+  @ApiPropertyOptional() @IsOptional() @IsInt() @Min(1) @Max(100) depositPercent?: number;
+  @ApiPropertyOptional() @IsOptional() @IsInt() @Min(5) @Max(1440) paymentExpiryMinutes?: number;
+  @ApiPropertyOptional({ type: String, nullable: true, description: 'Access token do Mercado Pago (vazio/null remove). Guardado cifrado.' })
+  @Transform(emptyToNull)
+  @IsOptional()
+  @IsString()
+  @MaxLength(300)
+  mercadoPagoToken?: string | null;
 }

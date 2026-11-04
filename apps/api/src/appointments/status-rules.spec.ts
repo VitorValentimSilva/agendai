@@ -54,3 +54,12 @@ describe('checkCustomerChange (política de cancelamento)', () => {
     expect(checkCustomerChange({ status: 'COMPLETED', startsAt: past }, 0, now).ok).toBe(false);
   });
 });
+
+describe('PENDING_PAYMENT', () => {
+  it('pode ser confirmado ou cancelado, mas não concluído', () => {
+    const a = { status: 'PENDING_PAYMENT' as const, startsAt: future };
+    expect(checkStatusTransition(a, 'CONFIRMED', now).ok).toBe(true);
+    expect(checkStatusTransition(a, 'CANCELED', now).ok).toBe(true);
+    expect(checkStatusTransition(a, 'COMPLETED', now).ok).toBe(false);
+  });
+});

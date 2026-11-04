@@ -23,6 +23,9 @@ export default defineConfig({
       WEB_ORIGIN: 'http://localhost:3000',
       THROTTLE_LIMIT: '10000',
       BOOKING_THROTTLE_LIMIT: '10000',
+      WHATSAPP_APP_SECRET: 'e2e-meta-app-secret',
+      WHATSAPP_VERIFY_TOKEN: 'e2e-verify-token',
+      MP_WEBHOOK_SECRET: 'e2e-mp-webhook-secret',
     },
   },
 });
