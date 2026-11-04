@@ -103,6 +103,7 @@ export class PublicBusinessRefDto {
   @ApiProperty() address: string;
   @ApiProperty() whatsapp: string;
   @ApiProperty() cancellationPolicyHours: number;
+  @ApiProperty({ description: 'Até quantos dias à frente dá para agendar/remarcar' }) maxAdvanceDays: number;
 }
 
 export class ManageInfoDto {

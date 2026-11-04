@@ -105,6 +105,12 @@ export class WaitlistService implements OnModuleInit {
         localDate,
       );
       if (slots.length === 0) continue;
+      // Reserva o aviso: dois horários liberados ao mesmo tempo não podem avisar a mesma pessoa duas vezes.
+      const claimed = await this.prisma.waitlistEntry.updateMany({
+        where: { id: entry.id, status: 'ACTIVE' },
+        data: { status: 'NOTIFIED', notifiedAt: new Date() },
+      });
+      if (!claimed.count) continue;
       const params = new URLSearchParams({ servico: entry.serviceId, data: date, ...(entry.professionalId ? { profissional: entry.professionalId } : {}) });
       const bookUrl = `${env.webOrigin}/n/${business.slug}/agendar?${params.toString()}`;
       const dateLabel = format(new TZDate(localMinuteToInstant(localDate, 12 * 60, business.timezone).getTime(), business.timezone), "EEEE, d 'de' MMMM", { locale: ptBR });
@@ -118,10 +124,8 @@ export class WaitlistService implements OnModuleInit {
           ? { name: env.whatsappWaitlistTemplate, bodyParams: [firstName(entry.customer.name), business.name, service.name, dateLabel, bookUrl] }
           : undefined,
       });
-      if (sent) {
-        await this.prisma.waitlistEntry.update({ where: { id: entry.id }, data: { status: 'NOTIFIED', notifiedAt: new Date() } });
-        notified++;
-      }
+      if (sent) notified++;
+      else await this.prisma.waitlistEntry.updateMany({ where: { id: entry.id, status: 'NOTIFIED' }, data: { status: 'ACTIVE', notifiedAt: null } });
     }
     if (notified) this.logger.log(`Fila de espera: ${notified} cliente(s) avisado(s) para ${date}`);
     return notified;

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, Param, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, Post, Query, UnprocessableEntityException } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsIn, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
@@ -96,8 +96,11 @@ export class MessagesController {
   async remind(@CurrentUser() user: SessionUser, @Param('id') id: string): Promise<ReminderRunResultDto> {
     const appointment = await this.appointments.findForUser(id, user);
     const business = await this.businesses.getById(user.businessId);
+    if (appointment.status !== 'SCHEDULED' && appointment.status !== 'CONFIRMED') {
+      throw new UnprocessableEntityException('Só dá para lembrar agendamentos ativos.');
+    }
     const ok = await this.messaging.sendReminder(appointment, business);
-    return { sent: ok ? 1 : 0, failed: ok ? 0 : 1 };
+    return { sent: ok === true ? 1 : 0, failed: ok === false ? 1 : 0 };
   }
 
   @Post('messages/simulate-reply')

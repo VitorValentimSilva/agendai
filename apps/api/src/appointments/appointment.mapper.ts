@@ -29,6 +29,7 @@ export function toPublicAppointment(a: AppointmentWithRelations, business: Busin
       address: `${business.addressLine} — ${business.city}/${business.state}`,
       whatsapp: business.whatsapp,
       cancellationPolicyHours: business.cancellationPolicyHours,
+      maxAdvanceDays: business.maxAdvanceDays,
     },
     manage: { canChange: change.ok, reason: change.ok ? null : change.reason, deadline: change.deadline.toISOString() },
     payment: a.payment
