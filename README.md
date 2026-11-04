@@ -3,7 +3,7 @@
 > Sistema completo de agendamento para barbearias, salões, clínicas e estúdios.
 > A demonstração vem configurada para uma barbearia **fictícia**: **Barbearia Navalha de Ouro** (Campinas – SP).
 
-**Demo:** _(link)_ · **Painel:** _(link)/admin_ · **API (Swagger):** _(link da API)/docs_
+**Demo:** https://agendai-glev.vercel.app · **Painel:** https://agendai-glev.vercel.app/admin · **Crie sua agenda:** https://agendai-glev.vercel.app/cadastro · **API (Swagger):** https://agendai-five.vercel.app/docs
 
 | Acesso de demonstração | E-mail | Senha |
 | --- | --- | --- |
@@ -39,7 +39,17 @@ Os dados da demo são recriados todo dia por um cron (datas sempre relativas a "
   - WhatsApp com máscara e validação; e-mail opcional.
 - Tela de sucesso com **código legível** (ex.: `K7Q-4MZ`), **Adicionar ao Google Agenda**, **Baixar .ics** e link pessoal para gerenciar.
 - **Meu agendamento** (link com token secreto): ver, **remarcar** e **cancelar**, respeitando a política de cancelamento.
+- **Pix na confirmação** (sinal ou valor total, via Mercado Pago): QR code, copia e cola, contagem regressiva e confirmação
+  automática; o horário fica reservado até o Pix expirar.
+- **Fila de espera**: num dia lotado o cliente deixa o WhatsApp e é avisado quando alguém cancela, com link direto para agendar.
+- **Lembrete por WhatsApp**: o cliente responde **1** para confirmar ou **2** para cancelar.
 - Estados de carregamento (skeleton), vazio e erro; mobile-first; respeita "reduzir movimento".
+
+### Multiempresa e cadastro self-service
+- **/cadastro**: qualquer negócio cria a própria agenda em 2 minutos (barbearia, salão, clínica ou estúdio), já com serviços,
+  expediente de exemplo e o dono logado no painel.
+- Cada negócio tem seu link: **subdomínio** (`navalha.seudominio.com`, com `ROOT_DOMAIN`) ou **`/n/slug`** (funciona em qualquer domínio).
+  O site e o painel são white-label (nome, segmento e textos vêm do negócio).
 
 ### Para o negócio (painel `/admin`)
 - Login com e-mail e senha (cookie httpOnly) e papéis **OWNER** (tudo) e **PROFESSIONAL** (só a própria agenda).
@@ -47,7 +57,11 @@ Os dados da demo são recriados todo dia por um cron (datas sempre relativas a "
 - **Agenda** dia (colunas por profissional, blocos posicionados pelo horário, bloqueios e linha do "agora") e semana.
   Detalhes com ações **confirmar / concluir / faltou / cancelar** e **"Lembrar no WhatsApp"** (mensagem pronta via `wa.me`).
 - **Novo agendamento** manual (balcão/telefone).
-- **Serviços**, **Profissionais** (editor de expediente com vários intervalos por dia + bloqueios), **Clientes** (busca, histórico, observações) e **Configurações** (dados do negócio, regras de agendamento, feriados).
+- **Serviços**, **Profissionais** (expediente com vários intervalos por dia, bloqueios e **comissão %**), **Clientes** (busca, histórico, observações) e **Configurações** (dados do negócio, regras, feriados, **lembretes** e **Pix**).
+- **Mensagens**: lembretes automáticos (cron diário) ou sob demanda, histórico de envios/respostas e simulação de resposta na demo.
+- **Fila de espera**: quem está aguardando, quem foi avisado e quem agendou.
+- **Relatórios**: faturamento, comissões por profissional, ticket médio, faltas e serviços no período; **exportação CSV** (Excel pt-BR).
+- **Agenda externa**: link **iCal** secreto por profissional e **Google Calendar** em tempo real (OAuth).
 - Tema claro/escuro; sidebar vira Sheet no celular.
 
 ### Regras de negócio (o coração)
@@ -73,6 +87,12 @@ Os dados da demo são recriados todo dia por um cron (datas sempre relativas a "
 | Dashboard | <img src="docs/screenshots/09-dashboard-375.png" width="180" /> | <img src="docs/screenshots/09-dashboard-1440.png" width="480" /> |
 | Agenda (dia) | <img src="docs/screenshots/10-agenda-dia-375.png" width="180" /> | <img src="docs/screenshots/10-agenda-dia-1440.png" width="480" /> |
 | Serviços | <img src="docs/screenshots/11-servicos-375.png" width="180" /> | <img src="docs/screenshots/11-servicos-1440.png" width="480" /> |
+| Relatórios e comissões | <img src="docs/screenshots/12-relatorios-375.png" width="180" /> | <img src="docs/screenshots/12-relatorios-1440.png" width="480" /> |
+| Mensagens (WhatsApp) | <img src="docs/screenshots/13-mensagens-375.png" width="180" /> | <img src="docs/screenshots/13-mensagens-1440.png" width="480" /> |
+| Fila de espera | <img src="docs/screenshots/14-fila-de-espera-375.png" width="180" /> | <img src="docs/screenshots/14-fila-de-espera-1440.png" width="480" /> |
+| Configurações (Pix e lembretes) | <img src="docs/screenshots/15-configuracoes-375.png" width="180" /> | <img src="docs/screenshots/15-configuracoes-1440.png" width="480" /> |
+| Pix na confirmação | <img src="docs/screenshots/16-pix-375.png" width="180" /> | <img src="docs/screenshots/16-pix-1440.png" width="480" /> |
+| Cadastro self-service | <img src="docs/screenshots/17-cadastro-375.png" width="180" /> | <img src="docs/screenshots/17-cadastro-1440.png" width="480" /> |
 
 Os prints são gerados automaticamente com `npm run screenshots` (veja [Testes](#testes)).
 
@@ -189,7 +209,17 @@ Outros comandos úteis:
 | `DIRECT_URL` | sim | Postgres sem pooler (usado pelo `prisma migrate`) |
 | `JWT_SECRET` | sim (produção) | Segredo do JWT da sessão (`openssl rand -base64 32`) |
 | `WEB_ORIGIN` | sim | URL do site (CORS e links do `.ics`) |
-| `CRON_SECRET` | sim | Protege `/internal/reset-demo` (a Vercel envia no cron) |
+| `CRON_SECRET` | sim | Protege `/internal/*` (a Vercel envia no cron) |
+| `PUBLIC_API_URL` | sim | URL pública da API (feed iCal, webhook do Mercado Pago, retorno do Google) |
+| `PROXY_SECRET` | sim | **Mesmo valor no site.** Autentica o IP real do cliente repassado pelo proxy (rate limit) |
+| `ENCRYPTION_KEY` | sim (produção) | 32 bytes em base64 (`openssl rand -base64 32`) — cifra tokens do Mercado Pago e Google |
+| `ROOT_DOMAIN` | não | Domínio raiz para subdomínios por negócio (ex.: `agendai.com.br`) |
+| `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID` | não | WhatsApp Cloud API. Sem eles, lembretes em **modo simulado** |
+| `WHATSAPP_APP_SECRET`, `WHATSAPP_VERIFY_TOKEN` | não | Validação do webhook da Meta (`/webhooks/whatsapp`) |
+| `WHATSAPP_REMINDER_TEMPLATE`, `WHATSAPP_WAITLIST_TEMPLATE` | não | Templates aprovados (mensagens fora da janela de 24h) |
+| `MP_ACCESS_TOKEN` | não | Token do Mercado Pago da plataforma (cada negócio também pode salvar o próprio). Sem token, Pix **simulado** |
+| `MP_WEBHOOK_SECRET` | não | Chave das notificações do Mercado Pago (valida `x-signature`) |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | não | OAuth do Google Calendar (redirect: `PUBLIC_API_URL/integrations/google/callback`) |
 | `PORT` | não | Porta local (padrão 3001) |
 | `BUSINESS_SLUG` | não | Negócio servido pelas rotas públicas (padrão `navalha-de-ouro`) |
 | `THROTTLE_LIMIT` / `BOOKING_THROTTLE_LIMIT` | não | Limites por minuto por IP (padrão 60 / 10) |
@@ -200,6 +230,8 @@ Outros comandos úteis:
 | Variável | Obrigatória | Descrição |
 | --- | --- | --- |
 | `API_URL` | sim | URL da API (padrão `http://localhost:3001`) — usada no rewrite `/api/*` |
+| `PROXY_SECRET` | sim | Mesmo valor da API |
+| `NEXT_PUBLIC_ROOT_DOMAIN` | não | Mesmo valor do `ROOT_DOMAIN` da API (subdomínios por negócio) |
 | `OPENAPI_URL` | não | Fonte do `npm run gen:api` |
 | `CHROME_PATH` / `WEB_URL` | não | Para `npm run screenshots` e `npm run e2e:browser` |
 
@@ -211,9 +243,13 @@ cd apps/api && npm run lint && npm test && npm run test:e2e && npm run build
 
 - **Unitários** (`npm test`): motor de disponibilidade (expediente partido, bloqueios, serviço que não cabe no fim do expediente,
   antecedência, limite de dias, fuso horário, virada de dia, "qualquer profissional"), regras de status/política de cancelamento e `.ics`.
+  Também: regras de Pix e assinatura do Mercado Pago, interpretação das respostas do WhatsApp, relatório/comissões,
+  CSV (escape e proteção contra injeção de fórmula), criptografia, origem permitida e rate limit.
 - **E2E** (`npm run test:e2e`, Postgres real no banco `agendai_test`, recriado a cada execução):
   fluxo agendar → painel → cancelar pelo link; remarcação; política de cancelamento; permissões OWNER × PROFESSIONAL;
-  reset protegido por `CRON_SECRET`; **10 reservas simultâneas do mesmo horário → 1 × 201 e 9 × 409**.
+  reset protegido por `CRON_SECRET`; **10 reservas simultâneas do mesmo horário → 1 × 201 e 9 × 409** (e 3 rodadas com
+  "qualquer profissional"); multiempresa e cadastro; CSRF e headers; lembretes, resposta simulada e webhook da Meta assinado;
+  Pix (sinal, expiração, desistência, Mercado Pago com webhook assinado); fila de espera; relatórios, CSV, feed iCal e Google.
 
 ```bash
 cd apps/web && npm run lint && npm run build
@@ -240,7 +276,17 @@ São **dois projetos na Vercel** apontando para o mesmo repositório (um para `a
    2. Variáveis: `DATABASE_URL`, `DIRECT_URL`, `JWT_SECRET`, `CRON_SECRET` e `WEB_ORIGIN` (pode ser provisório; ajuste no passo 4).
    3. Deploy. O script `vercel-build` roda `prisma generate && prisma migrate deploy && nest build` e popula a demo **só se o banco estiver vazio**.
    4. Confira `https://SEU-API.vercel.app/health` (→ `ok`) e `/docs`.
-   5. O cron diário de `apps/api/vercel.json` chama `GET /internal/reset-demo`; a Vercel envia `Authorization: Bearer $CRON_SECRET` automaticamente.
+   5. Os crons de `apps/api/vercel.json` chamam `GET /internal/reset-demo` (6h UTC) e `GET /internal/send-reminders` (12h UTC = 9h em Brasília);
+      a Vercel envia `Authorization: Bearer $CRON_SECRET` automaticamente. No plano Hobby os crons são diários: com
+      "enviar até 24h antes", cada cliente recebe o lembrete na manhã do dia anterior (ou no mesmo dia, se agendou depois).
+   6. **Integrações reais (opcionais)** — sem elas tudo funciona em modo simulado:
+      - **WhatsApp (Meta for Developers → WhatsApp → Configuration):** webhook `https://SUA-API/webhooks/whatsapp`, token de
+        verificação = `WHATSAPP_VERIFY_TOKEN`, assine o campo `messages`. Crie templates de lembrete (6 variáveis: nome, negócio,
+        serviço, profissional, data, hora + botões de resposta rápida) e de fila de espera (5 variáveis).
+      - **Mercado Pago (Suas integrações → Webhooks):** URL `https://SUA-API/webhooks/mercadopago`, evento *Pagamentos*;
+        copie a assinatura secreta para `MP_WEBHOOK_SECRET`. O token do negócio pode ser salvo no painel (Configurações → Pix).
+      - **Google Cloud (APIs e serviços):** ative a Google Calendar API, crie um cliente OAuth "Aplicativo da Web" com o
+        redirect `https://SUA-API/integrations/google/callback`.
 
    > **Problema comum — toda rota da API dá `404 NOT_FOUND`:** o projeto foi criado com outro Framework Preset
    > (ex.: Vite) ou sem Root Directory `apps/api`. Nesse caso o build passa, mas a Vercel publica só arquivos
@@ -249,7 +295,9 @@ São **dois projetos na Vercel** apontando para o mesmo repositório (um para `a
 
 3. **Web (projeto `agendai-web`)**
    1. Novo projeto com o mesmo repositório → **Root Directory: `apps/web`** (Next.js detectado).
-   2. Variável: `API_URL=https://SEU-API.vercel.app`.
+   2. Variáveis: `API_URL=https://SEU-API.vercel.app` e `PROXY_SECRET` (o mesmo da API).
+   3. Em **Settings → Deployment Protection**, deixe a Vercel Authentication só para **Preview** nos dois projetos
+      (senão o site não consegue chamar a API e os visitantes veem a tela de login da Vercel).
    3. Deploy.
 
 4. **Ligue as pontas:** no projeto da API, defina `WEB_ORIGIN=https://SEU-WEB.vercel.app` e faça *Redeploy*.
@@ -285,15 +333,16 @@ docker-compose.yml
 ## Limitações conhecidas e próximos passos
 
 **Limitações**
-- Uma instalação atende **um negócio** (as rotas públicas usam `BUSINESS_SLUG`); o modelo de dados já é multi-negócio.
-- Lembretes por WhatsApp são **manuais** (link `wa.me`); não há envio automático.
 - O rate limit usa memória da instância — em serverless é por instância. Para produção séria, usar Redis/Upstash.
+- No plano Hobby da Vercel os crons rodam uma vez por dia (lembretes diários; a expiração do Pix também acontece a cada acesso).
+- Mensagens do WhatsApp iniciadas pelo negócio fora da janela de 24h exigem templates aprovados pela Meta.
+- Pix pago depois de expirar fica registrado para estorno manual (não há estorno automático).
+- O Google Calendar é sincronizado do Agendaí para o Google (eventos criados direto no Google não bloqueiam horários).
 - Agendamento manual respeita expediente e bloqueios (não permite "encaixe" fora do horário).
-- Remarcação pelo cliente mantém o mesmo profissional.
 
-**5 melhorias para uma v2**
-1. **Lembrete automático por WhatsApp** (API oficial do WhatsApp Business) 24h e 2h antes, com confirmação por resposta.
-2. **Pagamento Pix** (sinal ou total) na confirmação, com webhook de baixa e política de no-show.
-3. **Multiempresa com subdomínio** (`navalha.agendai.app`), onboarding self-service e planos.
-4. **Fila de espera e encaixes**: avisar clientes quando um horário for liberado por cancelamento.
-5. **Relatórios e comissões** por profissional, exportação CSV e integração com Google Calendar (sincronização bidirecional).
+**Próximas melhorias sugeridas**
+1. Planos e cobrança recorrente dos negócios (SaaS), com limites por plano.
+2. Sincronização bidirecional com o Google (bloquear horários ocupados na agenda pessoal).
+3. Estorno automático do sinal no cancelamento dentro da política.
+4. Avaliações pós-atendimento e programa de fidelidade.
+5. Rate limit distribuído (Upstash) e filas para envios em massa.

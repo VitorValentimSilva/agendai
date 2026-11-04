@@ -38,6 +38,15 @@ Arquivo vivo: o que já foi feito e o que falta. Atualizado ao fim de cada fase.
 - [x] E2E pelo navegador (`npm run e2e:browser`): agenda pelo site e confere na API e na agenda do painel
 - [x] README completo, CLAUDE.md, guia de deploy (Vercel + Neon)
 
+## v2 — melhorias ✅
+- [x] Auditoria de segurança: headers, proteção CSRF por origem, IP real via PROXY_SECRET, cliente não sobrescrito,
+      dashboard do PROFESSIONAL, tokens de terceiros cifrados, 500 em reservas simultâneas (deadlock) corrigido
+- [x] Multiempresa (subdomínio + /n/slug) e cadastro self-service (/cadastro)
+- [x] Lembrete automático por WhatsApp (Cloud API) com confirmação por resposta 1/2
+- [x] Pix Mercado Pago (sinal ou total) com webhook assinado e expiração
+- [x] Fila de espera com aviso quando um horário é liberado
+- [x] Relatórios com comissões, CSV, feed iCal e Google Calendar
+- [x] Testes: 58 unitários + 44 e2e; prints atualizados
+
 ## Pendências / ideias
-- Preencher o link da demo no README após o deploy.
 - Ver "Limitações conhecidas e próximos passos" no README.
