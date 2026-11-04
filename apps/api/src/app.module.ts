@@ -7,6 +7,7 @@ import { AppointmentsModule } from './appointments/appointments.module.js';
 import { PublicModule } from './public/public.module.js';
 import { AdminModule } from './admin/admin.module.js';
 import { MessagingModule } from './messaging/messaging.module.js';
+import { PaymentsModule } from './payments/payments.module.js';
 import { InternalController } from './internal/internal.controller.js';
 import { HealthController } from './health/health.controller.js';
 
@@ -18,6 +19,7 @@ import { HealthController } from './health/health.controller.js';
     AvailabilityModule,
     AppointmentsModule,
     MessagingModule,
+    PaymentsModule,
     PublicModule,
     AdminModule,
   ],

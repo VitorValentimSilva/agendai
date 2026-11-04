@@ -5,6 +5,7 @@ import { PrismaService } from '../common/prisma.service.js';
 import { env } from '../common/env.js';
 import { resetDemo } from '../demo/demo-data.js';
 import { MessagingService } from '../messaging/messaging.service.js';
+import { PaymentsService } from '../payments/payments.service.js';
 
 class ReminderRunDto {
   @ApiProperty() sent: number;
@@ -25,6 +26,7 @@ export class InternalController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly messaging: MessagingService,
+    private readonly payments: PaymentsService,
   ) {}
 
   private authorize(authorization?: string): void {
@@ -40,6 +42,7 @@ export class InternalController {
   @ApiOkResponse({ type: ReminderRunDto })
   async sendReminders(@Headers('authorization') authorization?: string): Promise<ReminderRunDto> {
     this.authorize(authorization);
+    await this.payments.expireStale();
     return this.messaging.sendDueReminders();
   }
 

@@ -34,6 +34,8 @@ export interface BookingRequest {
   source: AppointmentSource;
   /** Painel: ignora antecedência mínima e limite de dias. */
   relaxed?: boolean;
+  /** Cria como PENDING_PAYMENT (segura o horário até o Pix ser pago) se o serviço tiver preço. */
+  holdForPayment?: boolean;
   now?: Date;
 }
 
@@ -79,6 +81,7 @@ export class AppointmentsService {
           priceCents: service.priceCents,
           source: req.source,
           notes: req.notes ?? null,
+          status: req.holdForPayment && service.priceCents > 0 ? 'PENDING_PAYMENT' : 'SCHEDULED',
         });
         await this.events.emit('created', created);
         return created;
@@ -98,6 +101,8 @@ export class AppointmentsService {
 
   async cancelByToken(token: string, now = new Date()): Promise<AppointmentWithRelations> {
     const appointment = await this.findByToken(token);
+    // Pix ainda não pago: o cliente pode desistir a qualquer momento (libera o horário).
+    if (appointment.status === 'PENDING_PAYMENT') return this.cancel(appointment.id, now);
     const business = await this.prisma.business.findUniqueOrThrow({ where: { id: appointment.businessId } });
     const check = checkCustomerChange(appointment, business.cancellationPolicyHours, now);
     if (!check.ok) throw new UnprocessableEntityException(check.reason);
@@ -112,7 +117,8 @@ export class AppointmentsService {
       include: appointmentInclude,
     });
     await this.events.emit('canceled', canceled);
-    return canceled;
+    // Os ouvintes podem ter alterado dados relacionados (ex.: cobrança Pix cancelada)
+    return this.prisma.appointment.findUniqueOrThrow({ where: { id }, include: appointmentInclude });
   }
 
   /** Confirma (pela resposta no WhatsApp ou pelo pagamento Pix). */
@@ -263,6 +269,7 @@ export class AppointmentsService {
     priceCents: number;
     source: AppointmentSource;
     notes: string | null;
+    status: AppointmentStatus;
   }): Promise<AppointmentWithRelations> {
     for (let attempt = 0; attempt < 5; attempt++) {
       try {

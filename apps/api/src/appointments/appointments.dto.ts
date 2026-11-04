@@ -111,6 +111,25 @@ export class ManageInfoDto {
   @ApiProperty() deadline: string;
 }
 
+export class PublicPaymentDto {
+  @ApiProperty({ enum: ['PENDING', 'PAID', 'EXPIRED', 'CANCELED', 'REFUNDED'], enumName: 'PaymentStatus' })
+  status: 'PENDING' | 'PAID' | 'EXPIRED' | 'CANCELED' | 'REFUNDED';
+  @ApiProperty({ description: 'MERCADO_PAGO ou SIMULATED' }) provider: string;
+  @ApiProperty() amountCents: number;
+  @ApiProperty({ type: String, nullable: true, description: 'Pix copia e cola (só enquanto pendente)' }) qrCode: string | null;
+  @ApiProperty({ type: String, nullable: true }) qrCodeBase64: string | null;
+  @ApiProperty({ type: String, nullable: true }) ticketUrl: string | null;
+  @ApiProperty() expiresAt: string;
+  @ApiProperty({ type: String, nullable: true }) paidAt: string | null;
+}
+
+export class AdminPaymentDto {
+  @ApiProperty({ enum: ['PENDING', 'PAID', 'EXPIRED', 'CANCELED', 'REFUNDED'], enumName: 'PaymentStatus' })
+  status: 'PENDING' | 'PAID' | 'EXPIRED' | 'CANCELED' | 'REFUNDED';
+  @ApiProperty() amountCents: number;
+  @ApiProperty() provider: string;
+}
+
 export class PublicAppointmentDto {
   @ApiProperty() code: string;
   @ApiProperty({ enum: AppointmentStatus, enumName: 'AppointmentStatus' }) status: AppointmentStatus;
@@ -123,6 +142,7 @@ export class PublicAppointmentDto {
   @ApiProperty() customerName: string;
   @ApiProperty({ type: PublicBusinessRefDto }) business: PublicBusinessRefDto;
   @ApiProperty({ type: ManageInfoDto }) manage: ManageInfoDto;
+  @ApiProperty({ type: PublicPaymentDto, nullable: true }) payment: PublicPaymentDto | null;
 }
 
 export class CreatedAppointmentDto extends PublicAppointmentDto {
@@ -144,4 +164,7 @@ export class AdminAppointmentDto {
   @ApiProperty({ type: AppointmentCustomerRefDto }) customer: AppointmentCustomerRefDto;
   @ApiProperty() manageToken: string;
   @ApiProperty() createdAt: string;
+  @ApiProperty({ type: String, nullable: true, description: 'WHATSAPP, PIX ou PAINEL' }) confirmedVia: string | null;
+  @ApiProperty({ type: String, nullable: true }) reminderSentAt: string | null;
+  @ApiProperty({ type: AdminPaymentDto, nullable: true }) payment: AdminPaymentDto | null;
 }

@@ -76,6 +76,15 @@ export const env = {
   get whatsappApiVersion() {
     return process.env.WHATSAPP_API_VERSION ?? 'v21.0';
   },
+  // ---------- Mercado Pago (Pix) — sem token, usa o modo simulado ----------
+  /** Token padrão da plataforma (cada negócio pode cadastrar o próprio no painel). */
+  get mpAccessToken() {
+    return process.env.MP_ACCESS_TOKEN ?? '';
+  },
+  /** Chave secreta das notificações (Webhooks) do Mercado Pago, para validar x-signature. */
+  get mpWebhookSecret() {
+    return process.env.MP_WEBHOOK_SECRET ?? '';
+  },
   get throttleLimit() {
     return int('THROTTLE_LIMIT', 60);
   },
