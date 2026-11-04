@@ -48,6 +48,34 @@ export const env = {
   get encryptionKey() {
     return process.env.ENCRYPTION_KEY ?? '';
   },
+  // ---------- WhatsApp Cloud API (Meta) — sem token, usa o modo simulado ----------
+  get whatsappToken() {
+    return process.env.WHATSAPP_TOKEN ?? '';
+  },
+  get whatsappPhoneNumberId() {
+    return process.env.WHATSAPP_PHONE_NUMBER_ID ?? '';
+  },
+  /** App Secret do app da Meta: valida a assinatura X-Hub-Signature-256 do webhook. */
+  get whatsappAppSecret() {
+    return process.env.WHATSAPP_APP_SECRET ?? '';
+  },
+  /** Token escolhido por você para a verificação inicial do webhook na Meta. */
+  get whatsappVerifyToken() {
+    return process.env.WHATSAPP_VERIFY_TOKEN ?? '';
+  },
+  /** Templates aprovados (mensagens iniciadas pelo negócio fora da janela de 24h exigem template). */
+  get whatsappReminderTemplate() {
+    return process.env.WHATSAPP_REMINDER_TEMPLATE ?? '';
+  },
+  get whatsappWaitlistTemplate() {
+    return process.env.WHATSAPP_WAITLIST_TEMPLATE ?? '';
+  },
+  get whatsappTemplateLang() {
+    return process.env.WHATSAPP_TEMPLATE_LANG ?? 'pt_BR';
+  },
+  get whatsappApiVersion() {
+    return process.env.WHATSAPP_API_VERSION ?? 'v21.0';
+  },
   get throttleLimit() {
     return int('THROTTLE_LIMIT', 60);
   },

@@ -11,7 +11,7 @@ import { PrismaService } from '../common/prisma.service.js';
 import { AvailabilityService } from '../availability/availability.service.js';
 import { localDayRange, toLocalDate, pickLeastBusyProfessional } from '../availability/availability.engine.js';
 import { generateAppointmentCode, generateManageToken } from '../common/ids.js';
-import { isOverlapViolation, isUniqueViolation } from '../common/prisma-errors.js';
+import { isBookingConflict, isUniqueViolation } from '../common/prisma-errors.js';
 import { isValidBrazilianWhatsapp, normalizeWhatsapp } from '../common/phone.js';
 import type { SessionUser } from '../common/decorators.js';
 import { env } from '../common/env.js';
@@ -19,6 +19,7 @@ import { formatLongDateTime } from '../common/dates.js';
 import { appointmentInclude, type AppointmentWithRelations } from './appointment.mapper.js';
 import { checkCustomerChange, checkStatusTransition } from './status-rules.js';
 import { buildIcs } from './ics.js';
+import { AppointmentEvents } from './appointment-events.js';
 import type { CustomerInputDto } from './appointments.dto.js';
 
 export const SLOT_TAKEN_MESSAGE = 'Ops! Esse horário acabou de ser reservado por outra pessoa. Escolha outro horário, por favor.';
@@ -41,6 +42,7 @@ export class AppointmentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly availability: AvailabilityService,
+    private readonly events: AppointmentEvents,
   ) {}
 
   async book(req: BookingRequest): Promise<AppointmentWithRelations> {
@@ -67,7 +69,7 @@ export class AppointmentsService {
 
     for (const professionalId of candidates) {
       try {
-        return await this.createWithUniqueCode({
+        const created = await this.createWithUniqueCode({
           businessId: business.id,
           serviceId: service.id,
           professionalId,
@@ -78,8 +80,10 @@ export class AppointmentsService {
           source: req.source,
           notes: req.notes ?? null,
         });
+        await this.events.emit('created', created);
+        return created;
       } catch (error) {
-        if (isOverlapViolation(error)) continue; // alguém reservou primeiro: tenta o próximo profissional livre
+        if (isBookingConflict(error)) continue; // alguém reservou primeiro: tenta o próximo profissional livre
         throw error;
       }
     }
@@ -97,11 +101,29 @@ export class AppointmentsService {
     const business = await this.prisma.business.findUniqueOrThrow({ where: { id: appointment.businessId } });
     const check = checkCustomerChange(appointment, business.cancellationPolicyHours, now);
     if (!check.ok) throw new UnprocessableEntityException(check.reason);
-    return this.prisma.appointment.update({
-      where: { id: appointment.id },
+    return this.cancel(appointment.id, now);
+  }
+
+  /** Cancela e avisa os ouvintes (fila de espera, Google Calendar). */
+  async cancel(id: string, now = new Date()): Promise<AppointmentWithRelations> {
+    const canceled = await this.prisma.appointment.update({
+      where: { id },
       data: { status: 'CANCELED', canceledAt: now },
       include: appointmentInclude,
     });
+    await this.events.emit('canceled', canceled);
+    return canceled;
+  }
+
+  /** Confirma (pela resposta no WhatsApp ou pelo pagamento Pix). */
+  async confirm(id: string, via: 'WHATSAPP' | 'PIX' | 'PAINEL'): Promise<AppointmentWithRelations> {
+    const confirmed = await this.prisma.appointment.update({
+      where: { id },
+      data: { status: 'CONFIRMED', confirmedVia: via },
+      include: appointmentInclude,
+    });
+    await this.events.emit('status-changed', confirmed);
+    return confirmed;
   }
 
   async rescheduleByToken(token: string, newStart: string, now = new Date()): Promise<AppointmentWithRelations> {
@@ -126,13 +148,18 @@ export class AppointmentsService {
     }
     const duration = appointment.endsAt.getTime() - appointment.startsAt.getTime();
     try {
-      return await this.prisma.appointment.update({
+      const updated = await this.prisma.appointment.update({
         where: { id: appointment.id },
-        data: { startsAt, endsAt: new Date(startsAt.getTime() + duration), status: 'SCHEDULED' },
+        // Novo horário: o lembrete precisa ser reenviado
+        data: { startsAt, endsAt: new Date(startsAt.getTime() + duration), status: 'SCHEDULED', reminderSentAt: null },
         include: appointmentInclude,
       });
+      await this.events.emit('rescheduled', updated);
+      // O horário antigo ficou livre: a fila de espera trata como um cancelamento daquele horário
+      await this.events.emit('canceled', { ...appointment, status: 'CANCELED' });
+      return updated;
     } catch (error) {
-      if (isOverlapViolation(error)) throw new ConflictException(SLOT_TAKEN_MESSAGE);
+      if (isBookingConflict(error)) throw new ConflictException(SLOT_TAKEN_MESSAGE);
       throw error;
     }
   }
@@ -176,11 +203,14 @@ export class AppointmentsService {
     const appointment = await this.findForUser(id, user);
     const check = checkStatusTransition(appointment, status, now);
     if (!check.ok) throw new UnprocessableEntityException(check.reason);
-    return this.prisma.appointment.update({
+    if (status === 'CANCELED') return this.cancel(id, now);
+    const updated = await this.prisma.appointment.update({
       where: { id },
-      data: { status, canceledAt: status === 'CANCELED' ? now : null },
+      data: { status, canceledAt: null, ...(status === 'CONFIRMED' ? { confirmedVia: 'PAINEL' } : {}) },
       include: appointmentInclude,
     });
+    await this.events.emit('status-changed', updated);
+    return updated;
   }
 
   // ---------- Internos ----------

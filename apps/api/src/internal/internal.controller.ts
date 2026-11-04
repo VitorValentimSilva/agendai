@@ -4,6 +4,12 @@ import { safeEqual } from '../common/crypto.js';
 import { PrismaService } from '../common/prisma.service.js';
 import { env } from '../common/env.js';
 import { resetDemo } from '../demo/demo-data.js';
+import { MessagingService } from '../messaging/messaging.service.js';
+
+class ReminderRunDto {
+  @ApiProperty() sent: number;
+  @ApiProperty() failed: number;
+}
 
 class ResetDemoResultDto {
   @ApiProperty() ok: boolean;
@@ -16,13 +22,29 @@ class ResetDemoResultDto {
 @ApiBearerAuth()
 @Controller('internal')
 export class InternalController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly messaging: MessagingService,
+  ) {}
 
-  private async reset(authorization?: string): Promise<ResetDemoResultDto> {
+  private authorize(authorization?: string): void {
     const secret = env.cronSecret;
     if (!secret || !authorization || !safeEqual(authorization, `Bearer ${secret}`)) {
       throw new UnauthorizedException();
     }
+  }
+
+  /** Cron: envia os lembretes de WhatsApp devidos (todos os negócios). */
+  @Get('send-reminders')
+  @ApiOperation({ summary: 'Envia lembretes de WhatsApp devidos (Authorization: Bearer CRON_SECRET)' })
+  @ApiOkResponse({ type: ReminderRunDto })
+  async sendReminders(@Headers('authorization') authorization?: string): Promise<ReminderRunDto> {
+    this.authorize(authorization);
+    return this.messaging.sendDueReminders();
+  }
+
+  private async reset(authorization?: string): Promise<ResetDemoResultDto> {
+    this.authorize(authorization);
     const summary = await resetDemo(this.prisma);
     return { ok: true, appointments: summary.appointments, customers: summary.customers };
   }

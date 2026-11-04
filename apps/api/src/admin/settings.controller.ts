@@ -5,12 +5,14 @@ import { PrismaService } from '../common/prisma.service.js';
 import { CurrentUser, Roles, type SessionUser } from '../common/decorators.js';
 import { BusinessService } from '../business/business.service.js';
 import { normalizeWhatsapp } from '../common/phone.js';
+import { encryptSecret } from '../common/crypto.js';
 import { AdminController } from './admin.decorator.js';
 import { BusinessSettingsDto, UpdateBusinessDto } from './admin.dto.js';
 
+/** Nunca devolve o token cifrado do Mercado Pago — só se ele existe. */
 function toSettings(b: Business): BusinessSettingsDto {
-  const { createdAt: _c, updatedAt: _u, ...rest } = b;
-  return rest;
+  const { createdAt: _c, updatedAt: _u, mercadoPagoTokenEnc, ...rest } = b;
+  return { ...rest, hasMercadoPagoToken: Boolean(mercadoPagoTokenEnc) };
 }
 
 function isValidTimezone(tz: string): boolean {
@@ -41,8 +43,10 @@ export class SettingsController {
   @ApiOkResponse({ type: BusinessSettingsDto })
   async update(@CurrentUser() user: SessionUser, @Body() dto: UpdateBusinessDto): Promise<BusinessSettingsDto> {
     if (dto.timezone && !isValidTimezone(dto.timezone)) throw new BadRequestException('Fuso horário inválido.');
+    const { mercadoPagoToken, ...fields } = dto;
     const data = {
-      ...dto,
+      ...fields,
+      ...(mercadoPagoToken !== undefined ? { mercadoPagoTokenEnc: mercadoPagoToken ? encryptSecret(mercadoPagoToken) : null } : {}),
       ...(dto.whatsapp ? { whatsapp: normalizeWhatsapp(dto.whatsapp) } : {}),
       ...(dto.state ? { state: dto.state.toUpperCase() } : {}),
     };
