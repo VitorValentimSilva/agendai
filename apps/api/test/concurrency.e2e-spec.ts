@@ -45,6 +45,32 @@ describe('Concorrência — sem agendamento duplo (e2e)', () => {
     expect(stored).toBe(1);
   });
 
+  it('3 rodadas de 12 reservas simultâneas com "qualquer profissional": nunca há sobreposição nem erro 500', async () => {
+    const services = await ctx.http().get('/services').expect(200);
+    const serviceId: string = services.body.find((s: { name: string }) => s.name === 'Corte').id;
+    for (let round = 0; round < 3; round++) {
+      const slot = await findFreeSlot(ctx, serviceId, 'any');
+      const responses = await Promise.all(
+        Array.from({ length: 12 }, (_, i) =>
+          ctx
+            .http()
+            .post('/appointments')
+            .send({
+              serviceId,
+              professionalId: 'any',
+              startsAt: slot.start,
+              customer: { name: `Rodada ${round} Cliente ${i}`, whatsapp: `(19) 9${String(60000000 + round * 100 + i).padStart(8, '0')}` },
+            }),
+        ),
+      );
+      const statuses = responses.map((r) => r.status);
+      expect(statuses.every((s) => s === 201 || s === 409)).toBe(true);
+      // No máximo um por profissional livre naquele horário
+      expect(statuses.filter((s) => s === 201).length).toBeLessThanOrEqual(slot.professionalIds.length);
+      expect(statuses.filter((s) => s === 201).length).toBeGreaterThanOrEqual(1);
+    }
+  });
+
   it('o banco recusa sobreposição mesmo inserindo direto (exclusion constraint)', async () => {
     const existing = await ctx.prisma.appointment.findFirstOrThrow({ where: { status: 'CONFIRMED' } });
     const { id: _id, code: _code, manageToken: _token, createdAt: _c, updatedAt: _u, ...rest } = existing;
