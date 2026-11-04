@@ -85,6 +85,13 @@ export const env = {
   get mpWebhookSecret() {
     return process.env.MP_WEBHOOK_SECRET ?? '';
   },
+  // ---------- Google Calendar (OAuth) — sem credenciais, a sincronização fica desativada ----------
+  get googleClientId() {
+    return process.env.GOOGLE_CLIENT_ID ?? '';
+  },
+  get googleClientSecret() {
+    return process.env.GOOGLE_CLIENT_SECRET ?? '';
+  },
   get throttleLimit() {
     return int('THROTTLE_LIMIT', 60);
   },

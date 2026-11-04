@@ -140,6 +140,7 @@ export class ProfessionalInputDto {
   avatarUrl?: string | null;
   @ApiPropertyOptional() @IsOptional() @IsBoolean() active?: boolean;
   @ApiPropertyOptional({ type: [String] }) @IsOptional() @IsArray() @IsString({ each: true }) serviceIds?: string[];
+  @ApiPropertyOptional({ description: 'Comissão (%) sobre atendimentos concluídos' }) @IsOptional() @IsInt() @Min(0) @Max(100) commissionPercent?: number;
 }
 
 export class UpdateProfessionalDto extends PartialType(ProfessionalInputDto) {}
@@ -153,6 +154,9 @@ export class AdminProfessionalDto {
   @ApiProperty({ type: [String] }) serviceIds: string[];
   @ApiProperty({ type: [WorkingHoursItemDto] }) workingHours: WorkingHoursItemDto[];
   @ApiProperty({ type: String, nullable: true }) userEmail: string | null;
+  @ApiProperty() commissionPercent: number;
+  @ApiProperty({ description: 'Feed iCal ativo' }) hasCalendarFeed: boolean;
+  @ApiProperty({ type: String, nullable: true, description: 'Conta Google conectada' }) googleEmail: string | null;
 }
 
 // ---------- Bloqueios ----------

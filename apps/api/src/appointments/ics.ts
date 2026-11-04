@@ -7,6 +7,8 @@ export interface IcsEvent {
   description: string;
   location: string;
   url?: string;
+  /** CONFIRMED ou TENTATIVE */
+  status?: 'CONFIRMED' | 'TENTATIVE';
   now?: Date;
 }
 
@@ -32,13 +34,8 @@ function fold(line: string): string {
   return out.join('\r\n');
 }
 
-export function buildIcs(e: IcsEvent): string {
-  const lines = [
-    'BEGIN:VCALENDAR',
-    'VERSION:2.0',
-    'PRODID:-//Agendai//Agendamento//PT-BR',
-    'CALSCALE:GREGORIAN',
-    'METHOD:PUBLISH',
+function eventLines(e: IcsEvent, withAlarm: boolean): string[] {
+  return [
     'BEGIN:VEVENT',
     `UID:${e.uid}`,
     `DTSTAMP:${stamp(e.now ?? new Date())}`,
@@ -47,13 +44,42 @@ export function buildIcs(e: IcsEvent): string {
     `SUMMARY:${escape(e.summary)}`,
     `DESCRIPTION:${escape(e.description)}`,
     `LOCATION:${escape(e.location)}`,
+    ...(e.status ? [`STATUS:${e.status}`] : []),
     ...(e.url ? [`URL:${e.url}`] : []),
-    'BEGIN:VALARM',
-    'TRIGGER:-PT1H',
-    'ACTION:DISPLAY',
-    `DESCRIPTION:${escape(e.summary)}`,
-    'END:VALARM',
+    ...(withAlarm
+      ? ['BEGIN:VALARM', 'TRIGGER:-PT1H', 'ACTION:DISPLAY', `DESCRIPTION:${escape(e.summary)}`, 'END:VALARM']
+      : []),
     'END:VEVENT',
+  ];
+}
+
+/** Um agendamento (arquivo .ics para o cliente baixar). */
+export function buildIcs(e: IcsEvent): string {
+  const lines = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Agendai//Agendamento//PT-BR',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    ...eventLines(e, true),
+    'END:VCALENDAR',
+  ];
+  return lines.map(fold).join('\r\n') + '\r\n';
+}
+
+/** Agenda inteira (feed assinável no Google Agenda/Apple/Outlook). */
+export function buildIcsCalendar(name: string, events: IcsEvent[], timezone: string): string {
+  const lines = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Agendai//Agenda//PT-BR',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    `X-WR-CALNAME:${escape(name)}`,
+    `X-WR-TIMEZONE:${timezone}`,
+    'REFRESH-INTERVAL;VALUE=DURATION:PT1H',
+    'X-PUBLISHED-TTL:PT1H',
+    ...events.flatMap((e) => eventLines(e, false)),
     'END:VCALENDAR',
   ];
   return lines.map(fold).join('\r\n') + '\r\n';

@@ -53,6 +53,9 @@ function toProfessional(p: ProfessionalRow): AdminProfessionalDto {
     serviceIds: p.services.map((s) => s.serviceId),
     workingHours: p.workingHours.map((w) => ({ weekday: w.weekday, startMinute: w.startMinute, endMinute: w.endMinute })),
     userEmail: p.user?.email ?? null,
+    commissionPercent: p.commissionPercent,
+    hasCalendarFeed: Boolean(p.calendarFeedToken),
+    googleEmail: p.googleEmail,
   };
 }
 
