@@ -492,6 +492,40 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/appointments/manage/{token}/availability": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Horários livres para remarcar (negócio, serviço e profissional do agendamento) */
+        get: operations["Public_rescheduleSlots"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/appointments/manage/{token}/availability/days": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Dias com horário livre para remarcar */
+        get: operations["Public_rescheduleDays"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/appointments/manage/{token}/cancel": {
         parameters: {
             query?: never;
@@ -1179,6 +1213,8 @@ export type components = {
         PublicBusinessRefDto: {
             address: string;
             cancellationPolicyHours: number;
+            /** @description Até quantos dias à frente dá para agendar/remarcar */
+            maxAdvanceDays: number;
             name: string;
             timezone: string;
             whatsapp: string;
@@ -2790,6 +2826,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PublicAppointmentDto"];
+                };
+            };
+        };
+    };
+    Public_rescheduleSlots: {
+        parameters: {
+            query: {
+                date: string;
+            };
+            header?: {
+                /** @description Slug do negócio (multiempresa). Sem ele, usa o negócio padrão. */
+                "x-business-slug"?: string;
+            };
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AvailabilityDto"];
+                };
+            };
+        };
+    };
+    Public_rescheduleDays: {
+        parameters: {
+            query: {
+                from: string;
+                to: string;
+            };
+            header?: {
+                /** @description Slug do negócio (multiempresa). Sem ele, usa o negócio padrão. */
+                "x-business-slug"?: string;
+            };
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AvailableDaysDto"];
                 };
             };
         };

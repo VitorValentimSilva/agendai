@@ -92,6 +92,16 @@ export const env = {
   get googleClientSecret() {
     return process.env.GOOGLE_CLIENT_SECRET ?? '';
   },
+  /**
+   * Permite integrações simuladas (Pix "simular pagamento", etc.). Padrão: sim fora de produção.
+   * Em produção, só o negócio de demonstração usa simulação, a não ser que ALLOW_SIMULATIONS=true.
+   */
+  get allowSimulations() {
+    const raw = process.env.ALLOW_SIMULATIONS;
+    if (raw === 'true') return true;
+    if (raw === 'false') return false;
+    return process.env.NODE_ENV !== 'production';
+  },
   get throttleLimit() {
     return int('THROTTLE_LIMIT', 60);
   },

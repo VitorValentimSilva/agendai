@@ -23,6 +23,17 @@ export class AvailableDaysQueryDto {
   @ApiProperty({ example: '2026-11-30' }) @Matches(DATE, { message: 'to deve estar no formato AAAA-MM-DD.' }) to: string;
 }
 
+export class TokenAvailabilityQueryDto {
+  @ApiProperty({ example: '2026-11-04' })
+  @Matches(DATE, { message: 'date deve estar no formato AAAA-MM-DD.' })
+  date: string;
+}
+
+export class TokenAvailableDaysQueryDto {
+  @ApiProperty({ example: '2026-11-01' }) @Matches(DATE, { message: 'from deve estar no formato AAAA-MM-DD.' }) from: string;
+  @ApiProperty({ example: '2026-11-30' }) @Matches(DATE, { message: 'to deve estar no formato AAAA-MM-DD.' }) to: string;
+}
+
 export class OpeningIntervalDto {
   @ApiProperty({ description: 'Minutos desde 00:00' }) start: number;
   @ApiProperty() end: number;

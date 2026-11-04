@@ -206,7 +206,8 @@ export function ManageAppointment() {
               serviceId={a.service.id}
               professionalId={a.professional.id}
               timezone={tz}
-              maxAdvanceDays={30}
+              maxAdvanceDays={a.business.maxAdvanceDays}
+              manageToken={token}
               date={date}
               onDateChange={(d) => {
                 setDate(d);

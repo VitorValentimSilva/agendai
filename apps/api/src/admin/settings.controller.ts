@@ -6,6 +6,7 @@ import { CurrentUser, Roles, type SessionUser } from '../common/decorators.js';
 import { BusinessService } from '../business/business.service.js';
 import { normalizeWhatsapp } from '../common/phone.js';
 import { encryptSecret } from '../common/crypto.js';
+import { PaymentsService } from '../payments/payments.service.js';
 import { AdminController } from './admin.decorator.js';
 import { BusinessSettingsDto, UpdateBusinessDto } from './admin.dto.js';
 
@@ -31,6 +32,7 @@ export class SettingsController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly businesses: BusinessService,
+    private readonly payments: PaymentsService,
   ) {}
 
   @Get()
@@ -44,6 +46,13 @@ export class SettingsController {
   async update(@CurrentUser() user: SessionUser, @Body() dto: UpdateBusinessDto): Promise<BusinessSettingsDto> {
     if (dto.timezone && !isValidTimezone(dto.timezone)) throw new BadRequestException('Fuso horário inválido.');
     const { mercadoPagoToken, ...fields } = dto;
+    if (dto.paymentMode && dto.paymentMode !== 'NONE') {
+      const current = await this.businesses.getById(user.businessId);
+      const hasToken = mercadoPagoToken !== undefined ? Boolean(mercadoPagoToken) : this.payments.providerFor(current) === 'MERCADO_PAGO';
+      if (!hasToken && !this.payments.canSimulate(current)) {
+        throw new BadRequestException('Para cobrar Pix, salve antes o access token do Mercado Pago.');
+      }
+    }
     const data = {
       ...fields,
       ...(mercadoPagoToken !== undefined ? { mercadoPagoTokenEnc: mercadoPagoToken ? encryptSecret(mercadoPagoToken) : null } : {}),

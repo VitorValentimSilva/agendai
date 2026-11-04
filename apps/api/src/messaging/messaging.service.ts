@@ -72,7 +72,15 @@ export class MessagingService {
   }
 
   /** Lembrete de um agendamento (marca reminderSentAt se enviar). */
-  async sendReminder(a: AppointmentWithRelations, business: Business): Promise<boolean> {
+  /** true = enviado, false = falhou, null = pulado (outro envio em andamento ou agendamento mudou). */
+  async sendReminder(a: AppointmentWithRelations, business: Business): Promise<boolean | null> {
+    // Reserva o envio antes de mandar: o cron e o botão "enviar agora" podem rodar ao mesmo tempo.
+    const sentAt = new Date();
+    const claimed = await this.prisma.appointment.updateMany({
+      where: { id: a.id, reminderSentAt: a.reminderSentAt ?? null, startsAt: a.startsAt, status: { in: ['SCHEDULED', 'CONFIRMED'] } },
+      data: { reminderSentAt: sentAt },
+    });
+    if (!claimed.count) return null;
     const askConfirmation = a.status === 'SCHEDULED';
     const info = {
       customerName: a.customer.name,
@@ -99,7 +107,8 @@ export class MessagingService {
           }
         : undefined,
     });
-    if (ok) await this.prisma.appointment.update({ where: { id: a.id }, data: { reminderSentAt: new Date() } });
+    // Falhou: libera para a próxima tentativa (só se ninguém mexeu depois de nós)
+    if (!ok) await this.prisma.appointment.updateMany({ where: { id: a.id, reminderSentAt: sentAt }, data: { reminderSentAt: a.reminderSentAt ?? null } });
     return ok;
   }
 
@@ -125,8 +134,9 @@ export class MessagingService {
         take: 200,
       });
       for (const a of due) {
-        if (await this.sendReminder(a, business)) result.sent++;
-        else result.failed++;
+        const ok = await this.sendReminder(a, business);
+        if (ok === true) result.sent++;
+        else if (ok === false) result.failed++;
       }
     }
     if (result.sent || result.failed) this.logger.log(`Lembretes: ${result.sent} enviados, ${result.failed} falharam`);
@@ -165,13 +175,13 @@ export class MessagingService {
     let action: 'confirmed' | 'canceled' | 'rejected';
 
     if (intent.kind === 'confirm') {
-      if (target.status === 'SCHEDULED') await this.appointments.confirm(target.id, 'WHATSAPP');
+      if (target.status === 'SCHEDULED') await this.appointments.confirm(target.id, 'WHATSAPP', ['SCHEDULED']);
       reply = `Perfeito, ${firstName(target.customer.name)}! Seu horário de ${target.service.name} está confirmado para ${when}. Até lá!`;
       action = 'confirmed';
     } else {
       const check = checkCustomerChange(target, business.cancellationPolicyHours, now);
       if (check.ok) {
-        await this.appointments.cancel(target.id, now);
+        await this.appointments.cancel(target.id, now, ['SCHEDULED', 'CONFIRMED']);
         reply = `Tudo certo, cancelamos seu horário de ${when}. Quando quiser, é só agendar de novo: ${env.webOrigin}`;
         action = 'canceled';
       } else {

@@ -1,4 +1,4 @@
-import { Body, Controller, ForbiddenException, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import { BadRequestException, Body, Controller, ForbiddenException, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiCreatedResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { PrismaService } from '../common/prisma.service.js';
 import { CurrentUser, type SessionUser } from '../common/decorators.js';
@@ -7,7 +7,7 @@ import { AvailabilityService } from '../availability/availability.service.js';
 import { AppointmentsService } from '../appointments/appointments.service.js';
 import { appointmentInclude, toAdminAppointment } from '../appointments/appointment.mapper.js';
 import { AdminAppointmentDto, UpdateStatusDto } from '../appointments/appointments.dto.js';
-import { addCalendarDays, localDayRange } from '../availability/availability.engine.js';
+import { addCalendarDays, diffInCalendarDays, localDayRange } from '../availability/availability.engine.js';
 import { formatTime, parseDateParam } from '../common/dates.js';
 import { AvailabilityDto, AvailabilityQueryDto } from '../public/public.dto.js';
 import { AdminController } from './admin.decorator.js';
@@ -48,8 +48,13 @@ export class AgendaController {
   async agenda(@CurrentUser() user: SessionUser, @Query() q: AgendaQueryDto): Promise<AgendaDto> {
     const business = await this.businesses.getById(user.businessId);
     const tz = business.timezone;
-    const start = localDayRange(parseDateParam(q.from, 'from'), tz).start;
-    const end = localDayRange(addCalendarDays(parseDateParam(q.to, 'to'), 1), tz).start;
+    const from = parseDateParam(q.from, 'from');
+    const to = parseDateParam(q.to, 'to');
+    const span = diffInCalendarDays(from, to);
+    if (span < 0) throw new BadRequestException('A data final deve ser depois da inicial.');
+    if (span > 62) throw new BadRequestException('Consulte no máximo 62 dias por vez.');
+    const start = localDayRange(from, tz).start;
+    const end = localDayRange(addCalendarDays(to, 1), tz).start;
     const professionalId = scopedProfessional(user, q.professionalId);
 
     const [appointments, timeOffs] = await Promise.all([

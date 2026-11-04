@@ -11,7 +11,7 @@ import { PrismaService } from '../common/prisma.service.js';
 import { AvailabilityService } from '../availability/availability.service.js';
 import { localDayRange, toLocalDate, pickLeastBusyProfessional } from '../availability/availability.engine.js';
 import { generateAppointmentCode, generateManageToken } from '../common/ids.js';
-import { isBookingConflict, isUniqueViolation } from '../common/prisma-errors.js';
+import { isBookingConflict, isNotFound, isUniqueViolation } from '../common/prisma-errors.js';
 import { isValidBrazilianWhatsapp } from '../common/phone.js';
 import type { SessionUser } from '../common/decorators.js';
 import { env } from '../common/env.js';
@@ -103,32 +103,50 @@ export class AppointmentsService {
   async cancelByToken(token: string, now = new Date()): Promise<AppointmentWithRelations> {
     const appointment = await this.findByToken(token);
     // Pix ainda não pago: o cliente pode desistir a qualquer momento (libera o horário).
-    if (appointment.status === 'PENDING_PAYMENT') return this.cancel(appointment.id, now);
+    if (appointment.status === 'PENDING_PAYMENT') return this.cancel(appointment.id, now, ['PENDING_PAYMENT']);
     const business = await this.prisma.business.findUniqueOrThrow({ where: { id: appointment.businessId } });
     const check = checkCustomerChange(appointment, business.cancellationPolicyHours, now);
     if (!check.ok) throw new UnprocessableEntityException(check.reason);
-    return this.cancel(appointment.id, now);
+    return this.cancel(appointment.id, now, ['SCHEDULED', 'CONFIRMED']);
   }
 
-  /** Cancela e avisa os ouvintes (fila de espera, Google Calendar). */
-  async cancel(id: string, now = new Date()): Promise<AppointmentWithRelations> {
-    const canceled = await this.prisma.appointment.update({
-      where: { id },
+  /**
+   * Cancela e avisa os ouvintes (fila de espera, Google Calendar, Pix).
+   * A troca é condicional (`from`): se outro fluxo mudou o status antes (ex.: Pix pago enquanto expirava),
+   * nada acontece e nenhum evento é emitido — evita cancelar um agendamento pago e avisos duplicados.
+   */
+  async cancel(
+    id: string,
+    now = new Date(),
+    from: AppointmentStatus[] = ['SCHEDULED', 'CONFIRMED', 'PENDING_PAYMENT', 'COMPLETED', 'NO_SHOW'],
+  ): Promise<AppointmentWithRelations> {
+    const { count } = await this.prisma.appointment.updateMany({
+      where: { id, status: { in: from } },
       data: { status: 'CANCELED', canceledAt: now },
-      include: appointmentInclude,
     });
-    await this.events.emit('canceled', canceled);
+    if (count) {
+      const canceled = await this.prisma.appointment.findUniqueOrThrow({ where: { id }, include: appointmentInclude });
+      await this.events.emit('canceled', canceled);
+    }
     // Os ouvintes podem ter alterado dados relacionados (ex.: cobrança Pix cancelada)
     return this.prisma.appointment.findUniqueOrThrow({ where: { id }, include: appointmentInclude });
   }
 
-  /** Confirma (pela resposta no WhatsApp ou pelo pagamento Pix). */
-  async confirm(id: string, via: 'WHATSAPP' | 'PIX' | 'PAINEL'): Promise<AppointmentWithRelations> {
-    const confirmed = await this.prisma.appointment.update({
-      where: { id },
+  /**
+   * Confirma (pela resposta no WhatsApp ou pelo pagamento Pix) só se o status ainda estiver em `from`.
+   * Retorna null quando outro fluxo chegou antes (ex.: cancelado no mesmo instante).
+   */
+  async confirm(
+    id: string,
+    via: 'WHATSAPP' | 'PIX' | 'PAINEL',
+    from: AppointmentStatus[] = ['SCHEDULED', 'PENDING_PAYMENT'],
+  ): Promise<AppointmentWithRelations | null> {
+    const { count } = await this.prisma.appointment.updateMany({
+      where: { id, status: { in: from } },
       data: { status: 'CONFIRMED', confirmedVia: via },
-      include: appointmentInclude,
     });
+    if (!count) return null;
+    const confirmed = await this.prisma.appointment.findUniqueOrThrow({ where: { id }, include: appointmentInclude });
     await this.events.emit('status-changed', confirmed);
     return confirmed;
   }
@@ -156,9 +174,10 @@ export class AppointmentsService {
     const duration = appointment.endsAt.getTime() - appointment.startsAt.getTime();
     try {
       const updated = await this.prisma.appointment.update({
-        where: { id: appointment.id },
-        // Novo horário: o lembrete precisa ser reenviado
-        data: { startsAt, endsAt: new Date(startsAt.getTime() + duration), status: 'SCHEDULED', reminderSentAt: null },
+        // Novo horário: o lembrete precisa ser reenviado. O status é mantido (um agendamento confirmado ou
+        // com sinal pago continua assim); a troca é condicional para não reviver um cancelado no meio do caminho.
+        where: { id: appointment.id, status: appointment.status, startsAt: appointment.startsAt },
+        data: { startsAt, endsAt: new Date(startsAt.getTime() + duration), reminderSentAt: null },
         include: appointmentInclude,
       });
       await this.events.emit('rescheduled', updated);
@@ -167,6 +186,7 @@ export class AppointmentsService {
       return updated;
     } catch (error) {
       if (isBookingConflict(error)) throw new ConflictException(SLOT_TAKEN_MESSAGE);
+      if (isNotFound(error)) throw new ConflictException('Este agendamento acabou de ser alterado. Atualize a página e tente de novo.');
       throw error;
     }
   }
@@ -210,12 +230,19 @@ export class AppointmentsService {
     const appointment = await this.findForUser(id, user);
     const check = checkStatusTransition(appointment, status, now);
     if (!check.ok) throw new UnprocessableEntityException(check.reason);
-    if (status === 'CANCELED') return this.cancel(id, now);
-    const updated = await this.prisma.appointment.update({
-      where: { id },
-      data: { status, canceledAt: null, ...(status === 'CONFIRMED' ? { confirmedVia: 'PAINEL' } : {}) },
-      include: appointmentInclude,
-    });
+    if (status === 'CANCELED') return this.cancel(id, now, [appointment.status]);
+    // Condicional ao status lido: se o cliente cancelou/pagou no mesmo instante, não sobrescreve.
+    const updated = await this.prisma.appointment
+      .update({
+        where: { id, status: appointment.status },
+        data: { status, canceledAt: null, ...(status === 'CONFIRMED' ? { confirmedVia: 'PAINEL' } : {}) },
+        include: appointmentInclude,
+      })
+      .catch((error: unknown) => {
+        if (isNotFound(error)) throw new ConflictException('Este agendamento acabou de ser alterado. Atualize a agenda.');
+        if (isBookingConflict(error)) throw new ConflictException('Esse horário já foi ocupado por outro agendamento.');
+        throw error;
+      });
     await this.events.emit('status-changed', updated);
     return updated;
   }

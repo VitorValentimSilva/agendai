@@ -154,7 +154,12 @@ export class CatalogController {
       include: professionalInclude,
       orderBy: [{ active: 'desc' }, { sortOrder: 'asc' }, { name: 'asc' }],
     });
-    return rows.map(toProfessional);
+    // Profissional vê a equipe, mas não os e-mails/comissões/integrações dos colegas.
+    return rows.map((r) => {
+      const dto = toProfessional(r);
+      if (user.role === 'OWNER' || r.id === user.professionalId) return dto;
+      return { ...dto, userEmail: null, googleEmail: null, commissionPercent: 0, hasCalendarFeed: false };
+    });
   }
 
   @Post('professionals')

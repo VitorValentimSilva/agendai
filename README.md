@@ -218,6 +218,7 @@ Outros comandos úteis:
 | `WHATSAPP_APP_SECRET`, `WHATSAPP_VERIFY_TOKEN` | não | Validação do webhook da Meta (`/webhooks/whatsapp`) |
 | `WHATSAPP_REMINDER_TEMPLATE`, `WHATSAPP_WAITLIST_TEMPLATE` | não | Templates aprovados (mensagens fora da janela de 24h) |
 | `MP_ACCESS_TOKEN` | não | Token do Mercado Pago da plataforma (cada negócio também pode salvar o próprio). Sem token, Pix **simulado** |
+| `ALLOW_SIMULATIONS` | não | `true` libera Pix simulado para qualquer negócio. Padrão: só fora de produção; em produção, só a demo simula |
 | `MP_WEBHOOK_SECRET` | não | Chave das notificações do Mercado Pago (valida `x-signature`) |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | não | OAuth do Google Calendar (redirect: `PUBLIC_API_URL/integrations/google/callback`) |
 | `PORT` | não | Porta local (padrão 3001) |

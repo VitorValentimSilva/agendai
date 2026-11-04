@@ -1158,6 +1158,113 @@
         ]
       }
     },
+    "/appointments/manage/{token}/availability": {
+      "get": {
+        "operationId": "Public_rescheduleSlots",
+        "parameters": [
+          {
+            "name": "x-business-slug",
+            "in": "header",
+            "description": "Slug do negócio (multiempresa). Sem ele, usa o negócio padrão.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "date",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "2026-11-04",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvailabilityDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Horários livres para remarcar (negócio, serviço e profissional do agendamento)",
+        "tags": [
+          "Público"
+        ]
+      }
+    },
+    "/appointments/manage/{token}/availability/days": {
+      "get": {
+        "operationId": "Public_rescheduleDays",
+        "parameters": [
+          {
+            "name": "x-business-slug",
+            "in": "header",
+            "description": "Slug do negócio (multiempresa). Sem ele, usa o negócio padrão.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "2026-11-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "2026-11-30",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvailableDaysDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Dias com horário livre para remarcar",
+        "tags": [
+          "Público"
+        ]
+      }
+    },
     "/appointments/manage/{token}/reschedule": {
       "post": {
         "operationId": "Public_reschedule",
@@ -3352,6 +3459,10 @@
           },
           "cancellationPolicyHours": {
             "type": "number"
+          },
+          "maxAdvanceDays": {
+            "type": "number",
+            "description": "Até quantos dias à frente dá para agendar/remarcar"
           }
         },
         "required": [
@@ -3359,7 +3470,8 @@
           "timezone",
           "address",
           "whatsapp",
-          "cancellationPolicyHours"
+          "cancellationPolicyHours",
+          "maxAdvanceDays"
         ]
       },
       "ManageInfoDto": {

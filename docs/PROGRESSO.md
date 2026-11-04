@@ -48,5 +48,15 @@ Arquivo vivo: o que já foi feito e o que falta. Atualizado ao fim de cada fase.
 - [x] Relatórios com comissões, CSV, feed iCal e Google Calendar
 - [x] Testes: 58 unitários + 44 e2e; prints atualizados
 
+## Revisão de tech lead ✅
+- [x] Sessão: JWT com `audience` (o `state` do Google não vale como sessão) e usuário/papel relidos do banco a cada request
+- [x] Pix simulado só na demo ou com `ALLOW_SIMULATIONS=true`; negócio real precisa do token do Mercado Pago
+- [x] Concorrência: Pix pago × expiração, lembretes cron × manual, fila de espera, mudança de status e
+      remarcação simultânea — todas as transições agora são condicionais (sem eventos duplicados)
+- [x] Remarcação pelo link: disponibilidade pelo token (independe do subdomínio), `maxAdvanceDays` real,
+      mantém CONFIRMED/pago
+- [x] PROFESSIONAL não vê e-mails/comissão dos colegas; agenda limitada a 62 dias por consulta
+- [x] Testes: 58 unitários + 52 e2e (`test/review.e2e-spec.ts`)
+
 ## Pendências / ideias
 - Ver "Limitações conhecidas e próximos passos" no README.
