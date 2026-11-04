@@ -1,6 +1,5 @@
 import { Body, Controller, Get, Header, Param, Post, Query, Res, UseGuards } from '@nestjs/common';
 import { ApiConflictResponse, ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiProduces, ApiTags } from '@nestjs/swagger';
-import { Throttle } from '@nestjs/throttler';
 import type { Response } from 'express';
 import { PrismaService } from '../common/prisma.service.js';
 import { BusinessService } from '../business/business.service.js';
@@ -8,7 +7,7 @@ import { AvailabilityService } from '../availability/availability.service.js';
 import { AppointmentsService } from '../appointments/appointments.service.js';
 import { toPublicAppointment } from '../appointments/appointment.mapper.js';
 import { CreateAppointmentDto, CreatedAppointmentDto, PublicAppointmentDto, RescheduleDto } from '../appointments/appointments.dto.js';
-import { AppThrottlerGuard } from '../common/throttler.guard.js';
+import { RateLimit, RateLimitGuard } from '../common/rate-limit.js';
 import { parseDateParam, formatTime } from '../common/dates.js';
 import { env } from '../common/env.js';
 import {
@@ -22,7 +21,7 @@ import {
 } from './public.dto.js';
 
 @ApiTags('Público')
-@UseGuards(AppThrottlerGuard)
+@UseGuards(RateLimitGuard)
 @Controller()
 export class PublicController {
   constructor(
@@ -128,7 +127,7 @@ export class PublicController {
   }
 
   @Post('appointments')
-  @Throttle({ default: { limit: env.bookingThrottleLimit, ttl: 60_000 } })
+  @RateLimit({ limit: env.bookingThrottleLimit })
   @ApiOperation({ summary: 'Criar agendamento (cliente)' })
   @ApiCreatedResponse({ type: CreatedAppointmentDto })
   @ApiConflictResponse({ description: 'Horário indisponível ou reservado por outra pessoa' })
@@ -147,7 +146,7 @@ export class PublicController {
   }
 
   @Post('appointments/manage/:token/cancel')
-  @Throttle({ default: { limit: env.bookingThrottleLimit, ttl: 60_000 } })
+  @RateLimit({ limit: env.bookingThrottleLimit })
   @ApiOperation({ summary: 'Cancelar pelo token (respeita a política de cancelamento)' })
   @ApiCreatedResponse({ type: PublicAppointmentDto })
   async cancel(@Param('token') token: string): Promise<PublicAppointmentDto> {
@@ -156,7 +155,7 @@ export class PublicController {
   }
 
   @Post('appointments/manage/:token/reschedule')
-  @Throttle({ default: { limit: env.bookingThrottleLimit, ttl: 60_000 } })
+  @RateLimit({ limit: env.bookingThrottleLimit })
   @ApiOperation({ summary: 'Remarcar pelo token (mesmo serviço e profissional)' })
   @ApiCreatedResponse({ type: PublicAppointmentDto })
   async reschedule(@Param('token') token: string, @Body() dto: RescheduleDto): Promise<PublicAppointmentDto> {
