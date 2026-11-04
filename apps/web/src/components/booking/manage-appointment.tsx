@@ -23,11 +23,12 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { ErrorState } from "@/components/site/state";
 import { useAppointmentByToken } from "@/hooks/use-public";
 import { api, ApiError, unwrap } from "@/lib/api/client";
-import { formatDateLong, formatInTz, formatTime } from "@/lib/format";
+import { formatDateLong, formatInTz, formatPrice, formatTime } from "@/lib/format";
 import { googleCalendarUrl } from "@/lib/calendar-links";
 import { whatsappLink } from "@/lib/phone";
 import { AppointmentSummary, StatusBadge } from "./appointment-summary";
 import { DateSlotPicker, type Slot } from "./date-slot-picker";
+import { PixPayment } from "./pix-payment";
 
 export function ManageAppointment() {
   const { token } = useParams<{ token: string }>();
@@ -88,6 +89,7 @@ export function ManageAppointment() {
   const a = appointment.data;
   const tz = a.business.timezone;
   const active = a.status === "SCHEDULED" || a.status === "CONFIRMED";
+  const pendingPix = a.status === "PENDING_PAYMENT";
 
   return (
     <div className="space-y-6">
@@ -100,6 +102,15 @@ export function ManageAppointment() {
         </div>
         <StatusBadge status={a.status} />
       </div>
+
+      {a.status === "PENDING_PAYMENT" && a.payment?.status === "PENDING" && <PixPayment appointment={a} token={token} />}
+      {a.payment?.status === "PAID" && (
+        <p className="rounded-xl border border-success/30 bg-success/10 px-4 py-3 text-sm">
+          Pix de <strong>{formatPrice(a.payment.amountCents)}</strong> recebido
+          {a.payment.amountCents < a.priceCents ? ` · restante ${formatPrice(a.priceCents - a.payment.amountCents)} no local` : ""}.
+          {a.status === "CANCELED" && " Para estorno, fale com o estabelecimento pelo WhatsApp."}
+        </p>
+      )}
 
       <AppointmentSummary appointment={a} />
 
@@ -114,6 +125,12 @@ export function ManageAppointment() {
           <Info className="mt-0.5 size-4 shrink-0 text-warning" />
           {a.manage.reason}
         </p>
+      )}
+
+      {pendingPix && (
+        <Button variant="outline" disabled={cancel.isPending} onClick={() => cancel.mutate()}>
+          {cancel.isPending ? <LoaderCircle className="animate-spin" /> : <CalendarX />} Desistir e liberar o horário
+        </Button>
       )}
 
       {active && (

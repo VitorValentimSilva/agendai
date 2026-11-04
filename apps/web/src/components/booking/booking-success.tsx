@@ -4,13 +4,14 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { motion } from "motion/react";
 import { toast } from "sonner";
-import { CalendarPlus, Check, Copy, Download, Settings2 } from "lucide-react";
+import { CalendarPlus, Check, Copy, Download, Settings2, Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/site/state";
 import { useAppointmentByToken } from "@/hooks/use-public";
 import { googleCalendarUrl } from "@/lib/calendar-links";
 import { AppointmentSummary } from "./appointment-summary";
+import { PixPayment } from "./pix-payment";
 
 export function BookingSuccess() {
   const { token } = useParams<{ token: string }>();
@@ -30,6 +31,22 @@ export function BookingSuccess() {
   }
 
   const a = appointment.data;
+  const pending = a.status === "PENDING_PAYMENT" && a.payment?.status === "PENDING";
+  const expired = a.status === "CANCELED" && a.payment?.status === "EXPIRED";
+  if (expired) {
+    return (
+      <div className="flex flex-col items-center gap-4 rounded-2xl border border-dashed p-8 text-center">
+        <span className="grid size-14 place-items-center rounded-full bg-warning/15 text-warning">
+          <Timer className="size-7" />
+        </span>
+        <h1 className="font-display text-2xl font-semibold">O prazo do Pix acabou</h1>
+        <p className="max-w-sm text-muted-foreground">O horário foi liberado. Você pode escolher um novo horário quando quiser.</p>
+        <Button asChild>
+          <Link href="/agendar">Agendar novamente</Link>
+        </Button>
+      </div>
+    );
+  }
   const manageUrl = typeof window !== "undefined" ? `${window.location.origin}/meu-agendamento/${token}` : `/meu-agendamento/${token}`;
   const googleUrl = googleCalendarUrl({
     title: `${a.service.name} — ${a.business.name}`,
@@ -43,16 +60,25 @@ export function BookingSuccess() {
     <div className="space-y-8">
       <div className="flex flex-col items-center text-center">
         <motion.span
+          key={pending ? "pending" : "ok"}
           initial={{ scale: 0.4, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ type: "spring", stiffness: 260, damping: 18 }}
-          className="grid size-16 place-items-center rounded-full bg-success/15 text-success ring-8 ring-success/5"
+          className={
+            pending
+              ? "grid size-16 place-items-center rounded-full bg-gold/15 text-gold ring-8 ring-gold/5"
+              : "grid size-16 place-items-center rounded-full bg-success/15 text-success ring-8 ring-success/5"
+          }
         >
-          <Check className="size-8" strokeWidth={2.5} />
+          {pending ? <Timer className="size-8" /> : <Check className="size-8" strokeWidth={2.5} />}
         </motion.span>
-        <h1 className="mt-5 font-display text-3xl font-semibold tracking-tight sm:text-4xl">Agendamento confirmado!</h1>
+        <h1 className="mt-5 font-display text-3xl font-semibold tracking-tight sm:text-4xl">
+          {pending ? "Quase lá! Falta o Pix" : "Agendamento confirmado!"}
+        </h1>
         <p className="mt-2 text-muted-foreground">
-          Te esperamos, {a.customerName.split(" ")[0]}. Guarde o código abaixo.
+          {pending
+            ? "Seu horário está reservado. Pague o Pix abaixo para confirmar."
+            : `Te esperamos, ${a.customerName.split(" ")[0]}. Guarde o código abaixo.`}
         </p>
         <div className="mt-5 rounded-2xl border border-dashed border-gold/50 bg-gold/5 px-6 py-3">
           <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">Código</p>
@@ -61,6 +87,8 @@ export function BookingSuccess() {
           </p>
         </div>
       </div>
+
+      {pending && <PixPayment appointment={a} token={token} />}
 
       <AppointmentSummary appointment={a} />
 

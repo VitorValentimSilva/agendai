@@ -39,6 +39,23 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/admin/appointments/{id}/remind": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Envia o lembrete de um agendamento agora */
+        post: operations["Messages_remind"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/appointments/{id}/status": {
         parameters: {
             query?: never;
@@ -138,6 +155,74 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/admin/integrations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Quais integrações estão ativas (reais ou simuladas) */
+        get: operations["Integrations_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Histórico de WhatsApp (PROFESSIONAL vê só os da própria agenda) */
+        get: operations["Messages_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/messages/send-reminders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Envia agora os lembretes devidos deste negócio */
+        post: operations["Messages_sendReminders"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/messages/simulate-reply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Demonstração: simula a resposta do cliente (1 confirma, 2 cancela). Só no modo simulado. */
+        post: operations["Messages_simulate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/professionals": {
         parameters: {
             query?: never;
@@ -171,6 +256,57 @@ export type paths = {
         patch: operations["Catalog_updateProfessional"];
         trace?: never;
     };
+    "/admin/professionals/{id}/calendar-feed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Link do feed iCal (null se desativado) */
+        get: operations["CalendarAdmin_getFeed"];
+        put?: never;
+        /** Gera um novo link do feed iCal (o anterior deixa de funcionar) */
+        post: operations["CalendarAdmin_enableFeed"];
+        delete: operations["CalendarAdmin_disableFeed"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/professionals/{id}/google": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["CalendarAdmin_googleDisconnect"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/professionals/{id}/google/connect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** URL para conectar o Google Calendar do profissional (OAuth) */
+        get: operations["CalendarAdmin_googleConnect"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/professionals/{id}/working-hours": {
         parameters: {
             query?: never;
@@ -181,6 +317,40 @@ export type paths = {
         get?: never;
         /** Substitui o expediente semanal (vários intervalos por dia) */
         put: operations["Catalog_setWorkingHours"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Relatório do período: por profissional (comissão), por serviço e totais */
+        get: operations["Reports_report"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/reports/appointments.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Exporta os agendamentos do período em CSV (Excel pt-BR) */
+        get: operations["Reports_csv"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -249,6 +419,40 @@ export type paths = {
         put?: never;
         post?: never;
         delete: operations["Catalog_deleteTimeOff"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/waitlist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Fila de espera (PROFESSIONAL vê a própria e as de "qualquer profissional") */
+        get: operations["WaitlistAdmin_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/waitlist/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remover da fila */
+        delete: operations["WaitlistAdmin_remove"];
         options?: never;
         head?: never;
         patch?: never;
@@ -333,6 +537,23 @@ export type paths = {
         put?: never;
         /** Remarcar pelo token (mesmo serviço e profissional) */
         post: operations["Public_reschedule"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/appointments/manage/{token}/simulate-payment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Demonstração: marca como pago um Pix do modo simulado */
+        post: operations["Public_simulatePayment"];
         delete?: never;
         options?: never;
         head?: never;
@@ -472,6 +693,23 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/calendar/{file}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Feed iCal do profissional (assinar no Google Agenda/Apple/Outlook) */
+        get: operations["CalendarPublic_feed"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/internal/reset-demo": {
         parameters: {
             query?: never;
@@ -484,6 +722,23 @@ export type paths = {
         put?: never;
         /** Apaga e recria os dados de demonstração (Authorization: Bearer CRON_SECRET) */
         post: operations["Internal_resetPost"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/internal/send-reminders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Envia lembretes de WhatsApp devidos (Authorization: Bearer CRON_SECRET) */
+        get: operations["Internal_sendReminders"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -541,30 +796,78 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/waitlist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Entrar na fila de espera de um dia sem vagas */
+        post: operations["WaitlistPublic_join"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/waitlist/{token}/leave": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sair da fila de espera */
+        post: operations["WaitlistPublic_leave"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 };
 export type webhooks = Record<string, never>;
 export type components = {
     schemas: {
         AdminAppointmentDto: {
             code: string;
+            /** @description WHATSAPP, PIX ou PAINEL */
+            confirmedVia: string | null;
             createdAt: string;
             customer: components["schemas"]["AppointmentCustomerRefDto"];
             endsAt: string;
             id: string;
             manageToken: string;
             notes: string | null;
+            payment: components["schemas"]["AdminPaymentDto"] | null;
             priceCents: number;
             professional: components["schemas"]["AppointmentProfessionalRefDto"];
+            reminderSentAt: string | null;
             service: components["schemas"]["AppointmentServiceRefDto"];
             /** @enum {string} */
             source: "ONLINE" | "MANUAL";
             startsAt: string;
             status: components["schemas"]["AppointmentStatus"];
         };
+        AdminPaymentDto: {
+            amountCents: number;
+            provider: string;
+            status: components["schemas"]["PaymentStatus"];
+        };
         AdminProfessionalDto: {
             active: boolean;
             avatarUrl: string | null;
             bio: string | null;
+            commissionPercent: number;
+            /** @description Conta Google conectada */
+            googleEmail: string | null;
+            /** @description Feed iCal ativo */
+            hasCalendarFeed: boolean;
             id: string;
             name: string;
             serviceIds: string[];
@@ -621,14 +924,22 @@ export type components = {
             addressLine: string;
             cancellationPolicyHours: number;
             city: string;
+            depositPercent: number;
             description: string | null;
             email: string | null;
+            /** @description Há um token do Mercado Pago salvo (o valor nunca é devolvido) */
+            hasMercadoPagoToken: boolean;
             id: string;
             instagram: string | null;
             maxAdvanceDays: number;
             minAdvanceMinutes: number;
             name: string;
+            paymentExpiryMinutes: number;
+            paymentMode: components["schemas"]["PaymentMode"];
             phone: string;
+            reminderHoursBefore: number;
+            remindersEnabled: boolean;
+            segment: string;
             slotIntervalMinutes: number;
             slug: string;
             state: string;
@@ -660,6 +971,7 @@ export type components = {
             /** @description Token secreto para o cliente gerenciar o agendamento. */
             manageToken: string;
             notes: string | null;
+            payment: components["schemas"]["PublicPaymentDto"] | null;
             priceCents: number;
             professional: components["schemas"]["AppointmentProfessionalRefDto"];
             service: components["schemas"]["AppointmentServiceRefDto"];
@@ -727,6 +1039,25 @@ export type components = {
             /** @description Faturamento realizado (concluídos) em centavos */
             revenueCents: number;
         };
+        IntegrationsDto: {
+            /** @description Sincronização com Google Calendar disponível */
+            google: boolean;
+            /** @enum {string} */
+            pix: "MERCADO_PAGO" | "SIMULATED";
+            /** @enum {string} */
+            whatsapp: "WHATSAPP_CLOUD" | "SIMULATED";
+        };
+        JoinWaitlistDto: {
+            customer: components["schemas"]["CustomerInputDto"];
+            /** @example 2026-11-20 */
+            date: string;
+            /**
+             * @description ID do profissional ou "any"
+             * @example any
+             */
+            professionalId: string;
+            serviceId: string;
+        };
         LoginDto: {
             /** @example demo@agendai.app */
             email: string;
@@ -758,6 +1089,21 @@ export type components = {
             /** @enum {string} */
             role: "OWNER" | "PROFESSIONAL";
         };
+        MessageDto: {
+            appointmentId: string | null;
+            body: string;
+            createdAt: string;
+            customerName: string | null;
+            /** @enum {string} */
+            direction: "OUT" | "IN";
+            error: string | null;
+            id: string;
+            /** @description reminder, waitlist, reply, inbound */
+            kind: string;
+            phone: string;
+            provider: string;
+            status: string;
+        };
         OpeningHoursDto: {
             intervals: components["schemas"]["OpeningIntervalDto"][];
             /** @description 0 = domingo */
@@ -768,12 +1114,30 @@ export type components = {
             /** @description Minutos desde 00:00 */
             start: number;
         };
+        /** @enum {string} */
+        PaymentMode: "NONE" | "DEPOSIT" | "FULL";
+        /** @enum {string} */
+        PaymentStatus: "PENDING" | "PAID" | "EXPIRED" | "CANCELED" | "REFUNDED";
         ProfessionalInputDto: {
             active?: boolean;
             avatarUrl?: string | null;
             bio?: string | null;
+            /** @description Comissão (%) sobre atendimentos concluídos */
+            commissionPercent?: number;
             name: string;
             serviceIds?: string[];
+        };
+        ProfessionalReportDto: {
+            appointments: number;
+            averageTicketCents: number;
+            canceled: number;
+            commissionCents: number;
+            commissionPercent: number;
+            completed: number;
+            noShows: number;
+            professionalId: string;
+            professionalName: string;
+            revenueCents: number;
         };
         PublicAppointmentDto: {
             business: components["schemas"]["PublicBusinessRefDto"];
@@ -782,6 +1146,7 @@ export type components = {
             endsAt: string;
             manage: components["schemas"]["ManageInfoDto"];
             notes: string | null;
+            payment: components["schemas"]["PublicPaymentDto"] | null;
             priceCents: number;
             professional: components["schemas"]["AppointmentProfessionalRefDto"];
             service: components["schemas"]["AppointmentServiceRefDto"];
@@ -792,6 +1157,7 @@ export type components = {
             addressLine: string;
             cancellationPolicyHours: number;
             city: string;
+            depositPercent: number;
             description: string | null;
             email: string | null;
             instagram: string | null;
@@ -799,6 +1165,8 @@ export type components = {
             minAdvanceMinutes: number;
             name: string;
             openingHours: components["schemas"]["OpeningHoursDto"][];
+            paymentExpiryMinutes: number;
+            paymentMode: components["schemas"]["PaymentMode"];
             phone: string;
             /** @example barbearia */
             segment: string;
@@ -815,6 +1183,18 @@ export type components = {
             timezone: string;
             whatsapp: string;
         };
+        PublicPaymentDto: {
+            amountCents: number;
+            expiresAt: string;
+            paidAt: string | null;
+            /** @description MERCADO_PAGO ou SIMULATED */
+            provider: string;
+            /** @description Pix copia e cola (só enquanto pendente) */
+            qrCode: string | null;
+            qrCodeBase64: string | null;
+            status: components["schemas"]["PaymentStatus"];
+            ticketUrl: string | null;
+        };
         PublicProfessionalDto: {
             avatarUrl: string | null;
             bio: string | null;
@@ -827,6 +1207,30 @@ export type components = {
             id: string;
             name: string;
             priceCents: number;
+        };
+        ReminderRunDto: {
+            failed: number;
+            sent: number;
+        };
+        ReminderRunResultDto: {
+            failed: number;
+            sent: number;
+        };
+        ReportDto: {
+            from: string;
+            professionals: components["schemas"]["ProfessionalReportDto"][];
+            services: components["schemas"]["ServiceReportDto"][];
+            to: string;
+            totals: components["schemas"]["ReportTotalsDto"];
+        };
+        ReportTotalsDto: {
+            appointments: number;
+            canceled: number;
+            commissionCents: number;
+            completed: number;
+            netRevenueCents: number;
+            noShows: number;
+            revenueCents: number;
         };
         RescheduleDto: {
             /** @example 2026-11-05T13:00:00.000Z */
@@ -845,6 +1249,12 @@ export type components = {
             /** @description Preço em centavos */
             priceCents: number;
             professionalIds?: string[];
+        };
+        ServiceReportDto: {
+            completed: number;
+            revenueCents: number;
+            serviceId: string;
+            serviceName: string;
         };
         SignupDto: {
             /** @example Rua das Flores, 100 — Centro */
@@ -870,6 +1280,19 @@ export type components = {
             state: string;
             /** @example (19) 99999-0000 */
             whatsapp: string;
+        };
+        SimulateReplyDto: {
+            appointmentId: string;
+            /**
+             * @description 1 = confirmar, 2 = cancelar
+             * @enum {string}
+             */
+            reply: "1" | "2";
+        };
+        SimulateReplyResultDto: {
+            /** @enum {string} */
+            action?: "confirmed" | "canceled" | "rejected";
+            handled: boolean;
         };
         SlotDto: {
             end: string;
@@ -911,13 +1334,20 @@ export type components = {
             addressLine?: string;
             cancellationPolicyHours?: number;
             city?: string;
+            depositPercent?: number;
             description?: string | null;
             email?: string | null;
             instagram?: string | null;
             maxAdvanceDays?: number;
+            /** @description Access token do Mercado Pago (vazio/null remove). Guardado cifrado. */
+            mercadoPagoToken?: string | null;
             minAdvanceMinutes?: number;
             name?: string;
+            paymentExpiryMinutes?: number;
+            paymentMode?: components["schemas"]["PaymentMode"];
             phone?: string;
+            reminderHoursBefore?: number;
+            remindersEnabled?: boolean;
             slotIntervalMinutes?: number;
             state?: string;
             timezone?: string;
@@ -932,6 +1362,8 @@ export type components = {
             active?: boolean;
             avatarUrl?: string | null;
             bio?: string | null;
+            /** @description Comissão (%) sobre atendimentos concluídos */
+            commissionPercent?: number;
             name?: string;
             serviceIds?: string[];
         };
@@ -947,6 +1379,31 @@ export type components = {
         UpdateStatusDto: {
             status: components["schemas"]["AppointmentStatus"];
         };
+        UrlDto: {
+            url: string | null;
+        };
+        WaitlistEntryAdminDto: {
+            createdAt: string;
+            customerName: string;
+            customerWhatsapp: string;
+            date: string;
+            id: string;
+            notifiedAt: string | null;
+            professionalId: string | null;
+            professionalName: string | null;
+            serviceId: string;
+            serviceName: string;
+            status: components["schemas"]["WaitlistStatus"];
+        };
+        WaitlistEntryPublicDto: {
+            date: string;
+            professionalName: string | null;
+            serviceName: string;
+            status: components["schemas"]["WaitlistStatus"];
+            token: string;
+        };
+        /** @enum {string} */
+        WaitlistStatus: "ACTIVE" | "NOTIFIED" | "BOOKED" | "CANCELED";
         WorkingHoursInputDto: {
             items: components["schemas"]["WorkingHoursItemDto"][];
         };
@@ -1057,6 +1514,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminAppointmentDto"];
+                };
+            };
+            /** @description Sem sessão */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sem permissão para o papel atual */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    Messages_remind: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReminderRunResultDto"];
                 };
             };
             /** @description Sem sessão */
@@ -1366,6 +1858,144 @@ export interface operations {
             };
         };
     };
+    Integrations_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntegrationsDto"];
+                };
+            };
+            /** @description Sem sessão */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sem permissão para o papel atual */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    Messages_list: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageDto"][];
+                };
+            };
+            /** @description Sem sessão */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sem permissão para o papel atual */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    Messages_sendReminders: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReminderRunResultDto"];
+                };
+            };
+            /** @description Sem sessão */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sem permissão para o papel atual */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    Messages_simulate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SimulateReplyDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SimulateReplyResultDto"];
+                };
+            };
+            /** @description Sem sessão */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sem permissão para o papel atual */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     Catalog_listProfessionals: {
         parameters: {
             query?: never;
@@ -1508,6 +2138,177 @@ export interface operations {
             };
         };
     };
+    CalendarAdmin_getFeed: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UrlDto"];
+                };
+            };
+            /** @description Sem sessão */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sem permissão para o papel atual */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CalendarAdmin_enableFeed: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UrlDto"];
+                };
+            };
+            /** @description Sem sessão */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sem permissão para o papel atual */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CalendarAdmin_disableFeed: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sem sessão */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sem permissão para o papel atual */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CalendarAdmin_googleDisconnect: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sem sessão */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sem permissão para o papel atual */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CalendarAdmin_googleConnect: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UrlDto"];
+                };
+            };
+            /** @description Sem sessão */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sem permissão para o papel atual */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     Catalog_setWorkingHours: {
         parameters: {
             query?: never;
@@ -1530,6 +2331,78 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["AdminProfessionalDto"];
                 };
+            };
+            /** @description Sem sessão */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sem permissão para o papel atual */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    Reports_report: {
+        parameters: {
+            query: {
+                from: string;
+                professionalId?: string;
+                to: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportDto"];
+                };
+            };
+            /** @description Sem sessão */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sem permissão para o papel atual */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    Reports_csv: {
+        parameters: {
+            query: {
+                from: string;
+                professionalId?: string;
+                to: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Sem sessão */
             401: {
@@ -1796,6 +2669,74 @@ export interface operations {
             };
         };
     };
+    WaitlistAdmin_list: {
+        parameters: {
+            query?: {
+                status?: "ACTIVE" | "NOTIFIED" | "BOOKED" | "CANCELED" | "ALL";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WaitlistEntryAdminDto"][];
+                };
+            };
+            /** @description Sem sessão */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sem permissão para o papel atual */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    WaitlistAdmin_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sem sessão */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sem permissão para o papel atual */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     Public_create: {
         parameters: {
             query?: never;
@@ -1918,6 +2859,30 @@ export interface operations {
         };
         responses: {
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicAppointmentDto"];
+                };
+            };
+        };
+    };
+    Public_simulatePayment: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Slug do negócio (multiempresa). Sem ele, usa o negócio padrão. */
+                "x-business-slug"?: string;
+            };
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2106,6 +3071,25 @@ export interface operations {
             };
         };
     };
+    CalendarPublic_feed: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                file: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     Internal_resetGet: {
         parameters: {
             query?: never;
@@ -2144,6 +3128,27 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ResetDemoResultDto"];
+                };
+            };
+        };
+    };
+    Internal_sendReminders: {
+        parameters: {
+            query?: never;
+            header: {
+                authorization: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReminderRunDto"];
                 };
             };
         };
@@ -2213,6 +3218,52 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["PublicProfessionalDto"][];
                 };
+            };
+        };
+    };
+    WaitlistPublic_join: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-business-slug"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["JoinWaitlistDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WaitlistEntryPublicDto"];
+                };
+            };
+        };
+    };
+    WaitlistPublic_leave: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-business-slug"?: string;
+            };
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

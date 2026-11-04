@@ -11,6 +11,7 @@ import { useAvailableDays, useSlots } from "@/hooks/use-public";
 import { formatLocalDate, fromIsoDate, toIsoDate, todayInTz } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { Schemas } from "@/lib/api/client";
+import { WaitlistDialog } from "./waitlist-dialog";
 
 export type Slot = Schemas["SlotDto"];
 
@@ -30,6 +31,8 @@ export function DateSlotPicker({
   slot,
   onSlotChange,
   excludeStart,
+  openWeekdays,
+  allowWaitlist = false,
 }: {
   serviceId: string;
   professionalId: string;
@@ -41,6 +44,13 @@ export function DateSlotPicker({
   onSlotChange: (slot: Slot) => void;
   /** Horário atual (remarcação) — não é oferecido como opção. */
   excludeStart?: string;
+  /**
+   * Dias da semana em que o negócio abre. Quando informado, dias lotados continuam clicáveis
+   * (para oferecer a fila de espera) e só dias fechados/fora da janela ficam desabilitados.
+   */
+  openWeekdays?: Set<number>;
+  /** Mostra "Entrar na fila de espera" quando a data escolhida está lotada. */
+  allowWaitlist?: boolean;
 }) {
   const today = todayInTz(timezone);
   const lastDay = toIsoDate(addDays(fromIsoDate(today), maxAdvanceDays));
@@ -48,14 +58,19 @@ export function DateSlotPicker({
   const available = useMemo(() => new Set(days.data?.days ?? []), [days.data]);
   const slots = useSlots({ serviceId, professionalId, date });
 
-  // Seleciona automaticamente o primeiro dia com horário
+  // Seleciona automaticamente o primeiro dia com horário (se nenhuma data foi escolhida)
   useEffect(() => {
-    if (!days.data) return;
-    if (!date || !available.has(date)) {
-      const first = days.data.days[0];
-      if (first && first !== date) onDateChange(first);
-    }
-  }, [days.data, available, date, onDateChange]);
+    if (!days.data || date) return;
+    const first = days.data.days[0];
+    if (first) onDateChange(first);
+  }, [days.data, date, onDateChange]);
+
+  const isDisabled = (d: Date) => {
+    const iso = toIsoDate(d);
+    if (!openWeekdays) return !available.has(iso);
+    return iso < today || iso > lastDay || !openWeekdays.has(d.getDay());
+  };
+  const isFull = (d: Date) => Boolean(openWeekdays) && !available.has(toIsoDate(d)) && !isDisabled(d);
 
   const visibleSlots = (slots.data?.slots ?? []).filter((s) => s.start !== excludeStart);
   const groups = PERIODS.map((p) => ({
@@ -85,7 +100,9 @@ export function DateSlotPicker({
             startMonth={fromIsoDate(today)}
             endMonth={fromIsoDate(lastDay)}
             defaultMonth={date ? fromIsoDate(date) : fromIsoDate(today)}
-            disabled={(d) => !available.has(toIsoDate(d))}
+            disabled={isDisabled}
+            modifiers={{ full: isFull }}
+            modifiersClassNames={{ full: "[&>button]:text-muted-foreground [&>button]:line-through [&>button]:decoration-muted-foreground/50" }}
             showOutsideDays={false}
             aria-label="Escolha a data"
           />
@@ -110,7 +127,14 @@ export function DateSlotPicker({
           <EmptyState
             icon={<CalendarX className="size-5" />}
             title={available.size === 0 ? "Sem horários nos próximos dias" : "Nenhum horário livre nesta data"}
-            message={available.size === 0 ? "Tente outro profissional ou fale com a gente pelo WhatsApp." : "Escolha outro dia no calendário."}
+            message={
+              allowWaitlist
+                ? "Entre na fila de espera: avisamos pelo WhatsApp se alguém cancelar."
+                : available.size === 0
+                  ? "Tente outro profissional ou fale com a gente pelo WhatsApp."
+                  : "Escolha outro dia no calendário."
+            }
+            action={allowWaitlist && date ? <WaitlistDialog serviceId={serviceId} professionalId={professionalId} date={date} /> : undefined}
           />
         ) : (
           <div className="space-y-5" role="radiogroup" aria-label="Horários disponíveis">
