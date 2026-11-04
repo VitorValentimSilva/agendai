@@ -1,6 +1,6 @@
 import { Controller, Get, Headers, HttpCode, Post, UnauthorizedException } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiProperty, ApiTags } from '@nestjs/swagger';
-import { timingSafeEqual } from 'node:crypto';
+import { safeEqual } from '../common/crypto.js';
 import { PrismaService } from '../common/prisma.service.js';
 import { env } from '../common/env.js';
 import { resetDemo } from '../demo/demo-data.js';
@@ -11,11 +11,6 @@ class ResetDemoResultDto {
   @ApiProperty() customers: number;
 }
 
-function safeEqual(a: string, b: string): boolean {
-  const ba = Buffer.from(a);
-  const bb = Buffer.from(b);
-  return ba.length === bb.length && timingSafeEqual(ba, bb);
-}
 
 @ApiTags('Interno')
 @ApiBearerAuth()

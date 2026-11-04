@@ -9,7 +9,7 @@ import { configureApp } from './setup.js';
 import { env } from './common/env.js';
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule, { logger: ['error', 'warn', 'log'] });
+  const app = await NestFactory.create(AppModule, { logger: ['error', 'warn', 'log'], rawBody: true });
   configureApp(app);
   await app.listen(env.port);
 }

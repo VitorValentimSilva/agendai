@@ -14,7 +14,7 @@ export interface TestContext {
 
 export async function createTestApp(): Promise<TestContext> {
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
-  const app = configureApp(moduleRef.createNestApplication());
+  const app = configureApp(moduleRef.createNestApplication({ rawBody: true }));
   await app.listen(0, '127.0.0.1');
   const url = await app.getUrl();
   const prisma = app.get(PrismaService);

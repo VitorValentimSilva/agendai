@@ -62,7 +62,7 @@ export class AppointmentsService {
     const candidates =
       req.professionalId === 'any' ? await this.orderByLeastBusy(slot.professionalIds, business, startsAt) : slot.professionalIds;
 
-    const customer = await this.upsertCustomer(business.id, req.customer);
+    const customer = await this.upsertCustomer(business.id, req.customer, req.source === 'MANUAL');
     const endsAt = new Date(startsAt.getTime() + service.durationMinutes * 60_000);
 
     for (const professionalId of candidates) {
@@ -196,15 +196,24 @@ export class AppointmentsService {
     return pickLeastBusyProfessional(ids, map);
   }
 
-  private async upsertCustomer(businessId: string, input: CustomerInputDto): Promise<Customer> {
+  /**
+   * Cria o cliente ou reaproveita o existente (mesmo WhatsApp).
+   * No agendamento online NÃO sobrescrevemos nome/e-mail de um cliente existente: qualquer pessoa
+   * poderia digitar o WhatsApp de outra e trocar os dados dela. Só completamos o e-mail se faltar.
+   * No agendamento manual (painel), os dados informados pela equipe atualizam o cadastro.
+   */
+  private async upsertCustomer(businessId: string, input: CustomerInputDto, trusted: boolean): Promise<Customer> {
     const whatsapp = normalizeWhatsapp(input.whatsapp);
-    const data = { name: input.name, ...(input.email ? { email: input.email.toLowerCase() } : {}) };
+    const email = input.email?.toLowerCase();
+    const where = { businessId_whatsapp: { businessId, whatsapp } };
     try {
-      return await this.prisma.customer.upsert({
-        where: { businessId_whatsapp: { businessId, whatsapp } },
-        create: { businessId, whatsapp, ...data },
-        update: data,
-      });
+      const existing = await this.prisma.customer.findUnique({ where });
+      if (existing) {
+        if (trusted) return this.prisma.customer.update({ where, data: { name: input.name, ...(email ? { email } : {}) } });
+        if (email && !existing.email) return this.prisma.customer.update({ where, data: { email } });
+        return existing;
+      }
+      return await this.prisma.customer.create({ data: { businessId, whatsapp, name: input.name, ...(email ? { email } : {}) } });
     } catch (error) {
       // Dois pedidos simultâneos do mesmo cliente: o segundo encontra o registro criado pelo primeiro.
       if (isUniqueViolation(error)) {

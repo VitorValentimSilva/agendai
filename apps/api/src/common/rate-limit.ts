@@ -9,6 +9,7 @@ import {
 import { Reflector } from '@nestjs/core';
 import type { Request, Response } from 'express';
 import { env } from './env.js';
+import { safeEqual } from './crypto.js';
 
 /**
  * Rate limit simples em memória (por IP e por rota).
@@ -30,8 +31,23 @@ export const RATE_LIMIT_KEY = 'agendai:rate-limit';
 /** Define o limite da rota (ou do controlador inteiro). */
 export const RateLimit = (options: Partial<RateLimitOptions>) => SetMetadata(RATE_LIMIT_KEY, options);
 
-/** Primeiro IP de X-Forwarded-For (o site chama a API via proxy do Next) ou o IP da conexão. */
+export const CLIENT_IP_HEADER = 'x-agendai-client-ip';
+export const PROXY_SECRET_HEADER = 'x-agendai-proxy-secret';
+
+/**
+ * IP do cliente para o rate limit.
+ * O site chama a API pelo proxy do Next: o IP que chega aqui seria o do servidor do site.
+ * Por isso o proxy repassa o IP real em `x-agendai-client-ip`, autenticado por PROXY_SECRET
+ * (sem o segredo, o header é ignorado — evita que alguém forje outro IP para burlar o limite).
+ */
 export function clientKey(req: Request): string {
+  const secret = env.proxySecret;
+  const sent = req.headers[PROXY_SECRET_HEADER];
+  if (secret && typeof sent === 'string' && safeEqual(sent, secret)) {
+    const ip = req.headers[CLIENT_IP_HEADER];
+    const value = (Array.isArray(ip) ? ip[0] : ip)?.trim();
+    if (value) return value;
+  }
   const forwarded = req.headers['x-forwarded-for'];
   const first = (Array.isArray(forwarded) ? forwarded[0] : forwarded)?.split(',')[0]?.trim();
   return first || req.ip || 'unknown';
