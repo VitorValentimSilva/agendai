@@ -3,7 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import bcrypt from 'bcryptjs';
 import { PrismaService } from '../common/prisma.service.js';
 import type { SessionUser } from '../common/decorators.js';
-import { AuthGuard } from './auth.guard.js';
+import { AuthGuard, SESSION_AUDIENCE } from './auth.guard.js';
 import type { MeDto, SignupDto } from './auth.dto.js';
 import { normalizeSlug, RESERVED_SLUGS } from '../common/tenant.js';
 import { normalizeWhatsapp } from '../common/phone.js';
@@ -31,7 +31,7 @@ export class AuthService {
       role: user.role,
       professionalId: user.professionalId,
     };
-    const token = await this.jwt.signAsync(AuthGuard.payloadFor(session));
+    const token = await this.jwt.signAsync(AuthGuard.payloadFor(session), { audience: SESSION_AUDIENCE });
     return { token, me: this.toMe(user) };
   }
 
@@ -96,7 +96,7 @@ export class AuthService {
     }
 
     const session: SessionUser = { userId: user.id, businessId: user.businessId, role: user.role, professionalId: user.professionalId };
-    const token = await this.jwt.signAsync(AuthGuard.payloadFor(session));
+    const token = await this.jwt.signAsync(AuthGuard.payloadFor(session), { audience: SESSION_AUDIENCE });
     return { token, me: this.toMe(user) };
   }
 

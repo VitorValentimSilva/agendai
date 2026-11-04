@@ -10,6 +10,8 @@ import { buildIcsCalendar, type IcsEvent } from '../appointments/ics.js';
 import { GoogleClient } from './google.client.js';
 import { googleEventFor } from './google-event.js';
 
+const GOOGLE_STATE_AUDIENCE = 'agendai:google-state';
+
 interface GoogleState {
   purpose: 'google-connect';
   pid: string;
@@ -99,6 +101,7 @@ export class CalendarService implements OnModuleInit {
     await this.assertCanManage(user, professionalId);
     const state = await this.jwt.signAsync({ purpose: 'google-connect', pid: professionalId, bid: user.businessId } satisfies GoogleState, {
       expiresIn: 600,
+      audience: GOOGLE_STATE_AUDIENCE,
     });
     return this.google.authUrl(state);
   }
@@ -107,7 +110,7 @@ export class CalendarService implements OnModuleInit {
   async googleCallback(code: string, state: string): Promise<void> {
     let payload: GoogleState;
     try {
-      payload = await this.jwt.verifyAsync<GoogleState>(state);
+      payload = await this.jwt.verifyAsync<GoogleState>(state, { audience: GOOGLE_STATE_AUDIENCE });
     } catch {
       throw new ForbiddenException('Link de conexão expirado. Tente de novo pelo painel.');
     }
