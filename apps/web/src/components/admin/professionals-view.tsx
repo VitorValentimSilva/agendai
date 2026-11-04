@@ -23,6 +23,7 @@ import { initials, minutesToHHMM, WEEKDAYS_SHORT } from "@/lib/format";
 import { PageHeader } from "./page-header";
 import { WorkingHoursEditor } from "./working-hours-editor";
 import { TimeOffManager } from "./time-off-manager";
+import { CalendarSyncPanel } from "./calendar-sync-panel";
 
 type Professional = Schemas["AdminProfessionalDto"];
 
@@ -87,7 +88,10 @@ export function ProfessionalsView() {
                     </Badge>
                   ))}
                 </div>
-                {p.userEmail && <p className="text-xs text-muted-foreground">Acesso ao painel: {p.userEmail}</p>}
+                <p className="text-xs text-muted-foreground">
+                  Comissão {p.commissionPercent}%{p.googleEmail ? " · Google Calendar conectado" : ""}
+                  {p.userEmail ? ` · acesso: ${p.userEmail}` : ""}
+                </p>
               </div>
               <Button variant="outline" size="sm" className="mt-auto" onClick={() => setEditingId(p.id)}>
                 <Settings2 /> Gerenciar
@@ -112,6 +116,7 @@ export function ProfessionalsView() {
                   <TabsTrigger value="dados">Dados</TabsTrigger>
                   <TabsTrigger value="expediente">Expediente</TabsTrigger>
                   <TabsTrigger value="bloqueios">Bloqueios</TabsTrigger>
+                  <TabsTrigger value="agenda">Agenda externa</TabsTrigger>
                 </TabsList>
                 <TabsContent value="dados">
                   <ProfessionalForm professional={editing} onSaved={() => undefined} />
@@ -121,6 +126,9 @@ export function ProfessionalsView() {
                 </TabsContent>
                 <TabsContent value="bloqueios">
                   <TimeOffManager professionalId={editing.id} />
+                </TabsContent>
+                <TabsContent value="agenda">
+                  <CalendarSyncPanel professionalId={editing.id} />
                 </TabsContent>
               </Tabs>
             ) : null}
@@ -139,10 +147,11 @@ function ProfessionalForm({ professional, onSaved }: { professional?: Profession
   const [avatarUrl, setAvatarUrl] = useState(professional?.avatarUrl ?? "");
   const [active, setActive] = useState(professional?.active ?? true);
   const [serviceIds, setServiceIds] = useState<string[]>(professional?.serviceIds ?? []);
+  const [commission, setCommission] = useState(professional?.commissionPercent ?? 40);
 
   const save = useMutation({
     mutationFn: () => {
-      const body = { name: name.trim(), bio: bio.trim() || null, avatarUrl: avatarUrl.trim() || null, active, serviceIds };
+      const body = { name: name.trim(), bio: bio.trim() || null, avatarUrl: avatarUrl.trim() || null, active, serviceIds, commissionPercent: commission };
       return professional
         ? unwrap(api.PATCH("/admin/professionals/{id}", { params: { path: { id: professional.id } }, body }))
         : unwrap(api.POST("/admin/professionals", { body }));
@@ -177,6 +186,19 @@ function ProfessionalForm({ professional, onSaved }: { professional?: Profession
           Foto (URL) <span className="font-normal text-muted-foreground">(opcional)</span>
         </Label>
         <Input id="p-avatar" type="url" placeholder="https://..." value={avatarUrl} onChange={(e) => setAvatarUrl(e.target.value)} />
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor="p-commission">Comissão (%)</Label>
+        <Input
+          id="p-commission"
+          type="number"
+          min={0}
+          max={100}
+          value={commission}
+          onChange={(e) => setCommission(Math.min(100, Math.max(0, Number(e.target.value))))}
+          className="w-28"
+        />
+        <p className="text-xs text-muted-foreground">Sobre o valor dos atendimentos concluídos — aparece em Relatórios.</p>
       </div>
       <fieldset className="grid gap-2">
         <legend className="mb-1 text-sm font-medium">Serviços que faz</legend>

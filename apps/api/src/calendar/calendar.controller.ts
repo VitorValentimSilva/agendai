@@ -33,7 +33,7 @@ export class CalendarPublicController {
   @Get('integrations/google/callback')
   @ApiExcludeEndpoint()
   async googleCallback(@Query('code') code: string | undefined, @Query('state') state: string | undefined, @Query('error') error: string | undefined, @Res() res: Response) {
-    const back = new URL('/admin/profissionais', env.webOrigin);
+    const back = new URL('/admin/agenda', env.webOrigin);
     try {
       if (error || !code || !state) throw new Error(error ?? 'Resposta incompleta do Google.');
       await this.calendar.googleCallback(code, state);

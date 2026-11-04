@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { ChevronLeft, ChevronRight, CalendarDays, Plus } from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { ChevronLeft, ChevronRight, CalendarDays, CalendarSync, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -32,6 +33,8 @@ import type { Schemas } from "@/lib/api/client";
 import { PageHeader } from "./page-header";
 import { AppointmentDialog } from "./appointment-dialog";
 import { ManualAppointmentDialog } from "./manual-appointment-dialog";
+import { CalendarSyncPanel } from "./calendar-sync-panel";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 type Professional = Schemas["AdminProfessionalDto"];
 type TimeOff = Schemas["TimeOffDto"];
@@ -62,6 +65,17 @@ export function AgendaView() {
   const [selected, setSelected] = useState<AdminAppointment | null>(null);
   const [creating, setCreating] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [syncOpen, setSyncOpen] = useState(false);
+
+  // Retorno do OAuth do Google (?google=ok|erro)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const result = params.get("google");
+    if (!result) return;
+    if (result === "ok") toast.success("Google Calendar conectado!", { description: "Novos agendamentos aparecem na sua agenda do Google." });
+    else toast.error("Não foi possível conectar o Google", { description: params.get("motivo") ?? undefined });
+    window.history.replaceState(null, "", window.location.pathname);
+  }, []);
 
   const activePros = (professionals.data ?? []).filter((p) => p.active);
   const ownId = me.data?.professionalId ?? undefined;
@@ -116,9 +130,16 @@ export function AgendaView() {
         title="Agenda"
         description={isPro ? "Sua agenda de atendimentos." : "Atendimentos por profissional."}
         actions={
-          <Button onClick={() => setCreating(true)}>
-            <Plus /> Novo agendamento
-          </Button>
+          <>
+            {me.data?.professionalId && (
+              <Button variant="outline" onClick={() => setSyncOpen(true)}>
+                <CalendarSync /> Sincronizar minha agenda
+              </Button>
+            )}
+            <Button onClick={() => setCreating(true)}>
+              <Plus /> Novo agendamento
+            </Button>
+          </>
         }
       />
 
@@ -244,6 +265,18 @@ export function AgendaView() {
       <Legend />
 
       <AppointmentDialog appointment={selected} timezone={timezone} onOpenChange={(o) => !o && setSelected(null)} />
+      {me.data?.professionalId && (
+        <Dialog open={syncOpen} onOpenChange={setSyncOpen}>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Sincronizar com seu calendário</DialogTitle>
+              <DialogDescription>Veja seus atendimentos no Google Agenda, Apple Calendário ou Outlook.</DialogDescription>
+            </DialogHeader>
+            <CalendarSyncPanel professionalId={me.data.professionalId} />
+          </DialogContent>
+        </Dialog>
+      )}
+
       <ManualAppointmentDialog
         open={creating}
         onOpenChange={setCreating}

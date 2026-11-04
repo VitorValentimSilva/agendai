@@ -19,6 +19,7 @@ import { api, unwrap, type Schemas } from "@/lib/api/client";
 import { formatPhone, isValidPhone, maskPhone } from "@/lib/phone";
 import { PageHeader } from "./page-header";
 import { TimeOffManager } from "./time-off-manager";
+import { AutomationSettings } from "./automation-settings";
 
 const TIMEZONES = ["America/Sao_Paulo", "America/Manaus", "America/Cuiaba", "America/Belem", "America/Fortaleza", "America/Recife", "America/Bahia", "America/Rio_Branco", "America/Noronha"];
 
@@ -47,7 +48,14 @@ export function SettingsView() {
   return (
     <>
       <PageHeader title="Configurações" description="Dados do negócio e regras do agendamento online." />
-      {settings.data ? <SettingsForm initial={settings.data} /> : <Skeleton className="h-[600px] w-full rounded-2xl" />}
+      {settings.data ? (
+        <>
+          <SettingsForm initial={settings.data} />
+          <AutomationSettings key={settings.data.hasMercadoPagoToken ? "t" : "f"} initial={settings.data} />
+        </>
+      ) : (
+        <Skeleton className="h-[600px] w-full rounded-2xl" />
+      )}
       <Card className="mt-6">
         <CardHeader>
           <CardTitle>Feriados e fechamentos</CardTitle>

@@ -5,7 +5,10 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import {
+  BellRing,
   CalendarDays,
+  ChartColumn,
+  MessagesSquare,
   ExternalLink,
   LayoutDashboard,
   LogOut,
@@ -29,6 +32,9 @@ import { ThemeToggle } from "./theme-toggle";
 const NAV = [
   { href: "/admin", label: "Visão geral", icon: LayoutDashboard, owner: false },
   { href: "/admin/agenda", label: "Agenda", icon: CalendarDays, owner: false },
+  { href: "/admin/fila-de-espera", label: "Fila de espera", icon: BellRing, owner: false },
+  { href: "/admin/mensagens", label: "Mensagens", icon: MessagesSquare, owner: false },
+  { href: "/admin/relatorios", label: "Relatórios", icon: ChartColumn, owner: false },
   { href: "/admin/servicos", label: "Serviços", icon: Scissors, owner: true },
   { href: "/admin/profissionais", label: "Profissionais", icon: UsersRound, owner: true },
   { href: "/admin/clientes", label: "Clientes", icon: Users, owner: true },
