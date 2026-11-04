@@ -15,6 +15,13 @@ import { formatPhone } from "@/lib/phone";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "./page-header";
 
+/** Formatação do WhatsApp: *negrito* vira <strong> (sem HTML vindo do texto). */
+function renderWhatsapp(text: string) {
+  return text.split(/(\*[^*\n]+\*)/g).map((part, i) =>
+    /^\*[^*\n]+\*$/.test(part) ? <strong key={i}>{part.slice(1, -1)}</strong> : part,
+  );
+}
+
 const KIND: Record<string, string> = { reminder: "Lembrete", waitlist: "Fila de espera", reply: "Resposta automática", inbound: "Cliente" };
 
 export function MessagesView() {
@@ -97,7 +104,7 @@ export function MessagesView() {
                     <span>·</span>
                     <time dateTime={m.createdAt}>{formatInTz(m.createdAt, "dd/MM HH:mm")}</time>
                   </div>
-                  <p className="break-words whitespace-pre-line">{m.body}</p>
+                  <p className="break-words whitespace-pre-line">{renderWhatsapp(m.body)}</p>
                   {m.status === "failed" && <p className="mt-1 text-xs text-destructive">Falhou: {m.error}</p>}
                 </div>
               </li>
