@@ -1,5 +1,7 @@
 # Agendaí — agendamento online white-label
 
+[![CI](https://github.com/VitorValentimSilva/agendai/actions/workflows/ci.yml/badge.svg)](https://github.com/VitorValentimSilva/agendai/actions/workflows/ci.yml)
+
 > Sistema completo de agendamento para barbearias, salões, clínicas e estúdios.
 > A demonstração vem configurada para uma barbearia **fictícia**: **Barbearia Navalha de Ouro** (Campinas – SP).
 
