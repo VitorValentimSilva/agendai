@@ -151,6 +151,26 @@ export class AppointmentsService {
     return confirmed;
   }
 
+  /**
+   * Reativa um agendamento cancelado (ex.: Pix pago logo depois de expirar) se o horário continuar livre.
+   * A exclusion constraint barra a volta se alguém ocupou o horário nesse meio-tempo → retorna null.
+   */
+  async reactivate(id: string, via: 'PIX' | 'PAINEL'): Promise<AppointmentWithRelations | null> {
+    try {
+      const { count } = await this.prisma.appointment.updateMany({
+        where: { id, status: 'CANCELED' },
+        data: { status: 'CONFIRMED', confirmedVia: via, canceledAt: null },
+      });
+      if (!count) return null;
+    } catch (error) {
+      if (isBookingConflict(error)) return null;
+      throw error;
+    }
+    const reactivated = await this.prisma.appointment.findUniqueOrThrow({ where: { id }, include: appointmentInclude });
+    await this.events.emit('created', reactivated);
+    return reactivated;
+  }
+
   async rescheduleByToken(token: string, newStart: string, now = new Date()): Promise<AppointmentWithRelations> {
     const appointment = await this.findByToken(token);
     const business = await this.prisma.business.findUniqueOrThrow({ where: { id: appointment.businessId } });

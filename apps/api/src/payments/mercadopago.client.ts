@@ -76,6 +76,24 @@ export class MercadoPagoClient {
     return { status: data.status, externalReference: data.external_reference ?? null };
   }
 
+  /** Estorno total de um pagamento aprovado (POST /v1/payments/{id}/refunds). */
+  async refund(accessToken: string, providerPaymentId: string, idempotencyKey: string): Promise<void> {
+    const res = await fetch(`${this.base}/v1/payments/${encodeURIComponent(providerPaymentId)}/refunds`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        'X-Idempotency-Key': idempotencyKey,
+      },
+      body: '{}',
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!res.ok) {
+      const data = (await res.json().catch(() => ({}))) as { message?: string };
+      throw new Error(`Mercado Pago (estorno): ${data.message ?? `HTTP ${res.status}`}`);
+    }
+  }
+
   /** Cobrança fictícia para o modo simulado (o QR é desenhado no site a partir do texto). */
   simulatedPix(amountCents: number, reference: string): PixCharge {
     const id = `sim_${randomBytes(6).toString('hex')}`;

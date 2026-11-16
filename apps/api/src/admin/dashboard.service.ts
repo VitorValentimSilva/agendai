@@ -96,6 +96,16 @@ export class DashboardService {
       include: appointmentInclude,
     });
 
+    const pixToRefund =
+      user.role === 'OWNER'
+        ? await this.prisma.payment.findMany({
+            where: { status: 'PAID', appointment: { businessId: business.id, status: 'CANCELED' } },
+            include: { appointment: { include: { customer: true } } },
+            orderBy: { paidAt: 'desc' },
+            take: 20,
+          })
+        : [];
+
     return {
       timezone: tz,
       today: formatLocalDate(today),
@@ -108,6 +118,14 @@ export class DashboardService {
       topServices,
       series,
       upcoming: upcoming.map(toAdminAppointment),
+      pixToRefund: pixToRefund.map((p) => ({
+        paymentId: p.id,
+        appointmentCode: p.appointment.code,
+        customerName: p.appointment.customer.name,
+        customerWhatsapp: p.appointment.customer.whatsapp,
+        amountCents: p.amountCents,
+        paidAt: p.paidAt?.toISOString() ?? null,
+      })),
     };
   }
 }

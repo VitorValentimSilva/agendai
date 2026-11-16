@@ -80,6 +80,18 @@ export function useChangeStatus() {
   });
 }
 
+export function useRefundPix() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (paymentId: string) => unwrap(api.POST("/admin/payments/{id}/refund", { params: { path: { id: paymentId } } })),
+    onSuccess: (dashboard) => {
+      qc.setQueryData(["admin", "dashboard"], dashboard);
+      toast.success("Pix estornado", { description: "O cliente foi avisado pelo WhatsApp." });
+    },
+    onError: (e) => toast.error("Não foi possível estornar", { description: e.message }),
+  });
+}
+
 export function useIntegrations() {
   return useQuery({ queryKey: ["admin", "integrations"], queryFn: () => unwrap(api.GET("/admin/integrations")), staleTime: 5 * 60_000 });
 }

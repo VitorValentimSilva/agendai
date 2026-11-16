@@ -22,7 +22,7 @@ function renderWhatsapp(text: string) {
   );
 }
 
-const KIND: Record<string, string> = { reminder: "Lembrete", waitlist: "Fila de espera", reply: "Resposta automática", inbound: "Cliente" };
+const KIND: Record<string, string> = { reminder: "Lembrete", waitlist: "Fila de espera", reply: "Resposta automática", payment: "Pagamento", inbound: "Cliente" };
 
 export function MessagesView() {
   const me = useMe();
