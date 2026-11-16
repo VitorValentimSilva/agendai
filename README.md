@@ -201,6 +201,9 @@ Outros comandos úteis:
 
 ## Variáveis de ambiente
 
+> Passo a passo de **como conseguir cada uma** (Upstash, cron-job.org, Mercado Pago, WhatsApp, Google, domínio):
+> [docs/VARIAVEIS.md](docs/VARIAVEIS.md).
+
 ### `apps/api/.env`
 
 | Variável | Obrigatória | Descrição |
@@ -224,6 +227,7 @@ Outros comandos úteis:
 | `PORT` | não | Porta local (padrão 3001) |
 | `BUSINESS_SLUG` | não | Negócio servido pelas rotas públicas (padrão `navalha-de-ouro`) |
 | `THROTTLE_LIMIT` / `BOOKING_THROTTLE_LIMIT` | não | Limites por minuto por IP (padrão 60 / 10) |
+| `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | não | Rate limit distribuído (Upstash Redis; aceita também `KV_REST_API_*`). Sem eles, contador em memória |
 | `TEST_DATABASE_URL` | não | Banco dos testes e2e (padrão `agendai_test` local) |
 
 ### `apps/web/.env.local`
@@ -278,8 +282,9 @@ São **dois projetos na Vercel** apontando para o mesmo repositório (um para `a
    3. Deploy. O script `vercel-build` roda `prisma generate && prisma migrate deploy && nest build` e popula a demo **só se o banco estiver vazio**.
    4. Confira `https://SEU-API.vercel.app/health` (→ `ok`) e `/docs`.
    5. Os crons de `apps/api/vercel.json` chamam `GET /internal/reset-demo` (6h UTC) e `GET /internal/send-reminders` (12h UTC = 9h em Brasília);
-      a Vercel envia `Authorization: Bearer $CRON_SECRET` automaticamente. No plano Hobby os crons são diários: com
-      "enviar até 24h antes", cada cliente recebe o lembrete na manhã do dia anterior (ou no mesmo dia, se agendou depois).
+      a Vercel envia `Authorization: Bearer $CRON_SECRET` automaticamente. No plano Hobby os crons são diários, então os
+      lembretes "X horas antes" são disparados a cada 15 min por um agendador externo grátis (**cron-job.org**) chamando
+      `/internal/send-reminders` com o mesmo header — ver [docs/VARIAVEIS.md](docs/VARIAVEIS.md#2-lembretes-a-cada-15-minutos--cron-joborg).
    6. **Integrações reais (opcionais)** — sem elas tudo funciona em modo simulado:
       - **WhatsApp (Meta for Developers → WhatsApp → Configuration):** webhook `https://SUA-API/webhooks/whatsapp`, token de
         verificação = `WHATSAPP_VERIFY_TOKEN`, assine o campo `messages`. Crie templates de lembrete (6 variáveis: nome, negócio,
@@ -334,16 +339,23 @@ docker-compose.yml
 ## Limitações conhecidas e próximos passos
 
 **Limitações**
-- O rate limit usa memória da instância — em serverless é por instância. Para produção séria, usar Redis/Upstash.
-- No plano Hobby da Vercel os crons rodam uma vez por dia (lembretes diários; a expiração do Pix também acontece a cada acesso).
-- Mensagens do WhatsApp iniciadas pelo negócio fora da janela de 24h exigem templates aprovados pela Meta.
-- Pix pago depois de expirar fica registrado para estorno manual (não há estorno automático).
-- O Google Calendar é sincronizado do Agendaí para o Google (eventos criados direto no Google não bloqueiam horários).
+- Mensagens do WhatsApp iniciadas pelo negócio fora da janela de 24h exigem templates aprovados pela Meta
+  (o aviso de Pix reativado/estornado é texto livre: sem template, pode não chegar fora da janela).
+- O Google bloqueia horários pelos eventos *Ocupado* da agenda pessoal (cache de 2 min); o painel (agendamento manual)
+  não consulta o Google — o dono decide os encaixes.
 - Agendamento manual respeita expediente e bloqueios (não permite "encaixe" fora do horário).
+- Sem Upstash configurado (ou se ele cair), o rate limit volta a ser por instância.
+
+**Resolvido na v3**
+- Rate limit distribuído com Upstash Redis (fallback em memória).
+- Lembretes a cada 15 min via cron-job.org (o cron diário da Vercel fica como rede de segurança).
+- Pix pago depois de expirar: reativa o agendamento se o horário seguir livre; senão estorna pelo Mercado Pago e avisa o
+  cliente. Estorno recusado aparece no dashboard em "Pix a estornar".
+- Compromissos pessoais no Google Calendar bloqueiam horários no site.
+- A página "meu agendamento" mostra o negócio do agendamento em qualquer domínio.
 
 **Próximas melhorias sugeridas**
 1. Planos e cobrança recorrente dos negócios (SaaS), com limites por plano.
-2. Sincronização bidirecional com o Google (bloquear horários ocupados na agenda pessoal).
-3. Estorno automático do sinal no cancelamento dentro da política.
-4. Avaliações pós-atendimento e programa de fidelidade.
-5. Rate limit distribuído (Upstash) e filas para envios em massa.
+2. Estorno automático do sinal no cancelamento dentro da política.
+3. Avaliações pós-atendimento e programa de fidelidade.
+4. Filas para envios em massa (ex.: Upstash QStash).
