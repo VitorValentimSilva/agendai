@@ -7,6 +7,7 @@ import type { SessionUser } from '../common/decorators.js';
 import { AppointmentEvents, type AppointmentEvent } from '../appointments/appointment-events.js';
 import type { AppointmentWithRelations } from '../appointments/appointment.mapper.js';
 import { buildIcsCalendar, type IcsEvent } from '../appointments/ics.js';
+import { GoogleBusyService } from './google-busy.service.js';
 import { GoogleClient } from './google.client.js';
 import { googleEventFor } from './google-event.js';
 
@@ -27,6 +28,7 @@ export class CalendarService implements OnModuleInit {
     private readonly google: GoogleClient,
     private readonly jwt: JwtService,
     private readonly events: AppointmentEvents,
+    private readonly busy: GoogleBusyService,
   ) {}
 
   onModuleInit(): void {
@@ -122,6 +124,7 @@ export class CalendarService implements OnModuleInit {
       where: { id: pro.id },
       data: { googleRefreshTokenEnc: encryptSecret(refreshToken), googleEmail: email, googleCalendarId: 'primary' },
     });
+    this.busy.forget(pro.id);
   }
 
   async googleDisconnect(user: SessionUser, professionalId: string): Promise<void> {
@@ -137,6 +140,7 @@ export class CalendarService implements OnModuleInit {
       where: { id: pro.id },
       data: { googleRefreshTokenEnc: null, googleEmail: null, googleCalendarId: null },
     });
+    this.busy.forget(pro.id);
   }
 
   /** Mantém o evento no Google do profissional igual ao agendamento. */

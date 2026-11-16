@@ -27,6 +27,15 @@ export interface AvailabilityQuery {
   excludeAppointmentId?: string;
 }
 
+/** Fonte externa de horários ocupados (ex.: agenda pessoal do Google do profissional). */
+export interface ExternalBusyProvider {
+  busyFor(
+    professionals: Array<{ id: string; googleRefreshTokenEnc: string | null; googleCalendarId: string | null }>,
+    range: TimeRange,
+    timezone: string,
+  ): Promise<Map<string, TimeRange[]>>;
+}
+
 interface LoadedContext {
   service: Service;
   professionals: Array<{ id: string; name: string }>;
@@ -35,7 +44,14 @@ interface LoadedContext {
 
 @Injectable()
 export class AvailabilityService {
+  private externalBusy: ExternalBusyProvider | null = null;
+
   constructor(private readonly prisma: PrismaService) {}
+
+  /** Registrado pelo módulo de calendário (evita dependência circular). */
+  setExternalBusyProvider(provider: ExternalBusyProvider): void {
+    this.externalBusy = provider;
+  }
 
   async slotsForDate(query: AvailabilityQuery, date: LocalDate): Promise<{ service: Service; slots: AnySlot[] }> {
     const range = localDayRange(date, query.business.timezone);
@@ -95,7 +111,11 @@ export class AvailabilityService {
     }
     const ids = professionals.map((p) => p.id);
 
-    const [appointments, timeOffs] = await Promise.all([
+    // Painel (relaxed) não consulta a agenda pessoal: o dono decide os encaixes.
+    const externalBusyPromise =
+      this.externalBusy && !query.relaxed ? this.externalBusy.busyFor(professionals, range, business.timezone) : Promise.resolve(new Map<string, TimeRange[]>());
+
+    const [appointments, timeOffs, external] = await Promise.all([
       this.prisma.appointment.findMany({
         where: {
           professionalId: { in: ids },
@@ -115,6 +135,7 @@ export class AvailabilityService {
         },
         select: { professionalId: true, startsAt: true, endsAt: true },
       }),
+      externalBusyPromise,
     ]);
 
     const schedules: ProfessionalSchedule[] = professionals.map((p) => ({
@@ -123,7 +144,9 @@ export class AvailabilityService {
       busy: [
         ...appointments.filter((a) => a.professionalId === p.id),
         ...timeOffs.filter((t) => t.professionalId === null || t.professionalId === p.id),
-      ].map((x) => ({ start: x.startsAt, end: x.endsAt })),
+      ]
+        .map((x) => ({ start: x.startsAt, end: x.endsAt }))
+        .concat(external.get(p.id) ?? []),
     }));
 
     return { service, professionals: professionals.map((p) => ({ id: p.id, name: p.name })), schedules };

@@ -28,6 +28,7 @@ import { googleCalendarUrl } from "@/lib/calendar-links";
 import { whatsappLink } from "@/lib/phone";
 import { AppointmentSummary, StatusBadge } from "./appointment-summary";
 import { DateSlotPicker, type Slot } from "./date-slot-picker";
+import { SiteHeader } from "@/components/site/site-header";
 import { PixPayment } from "./pix-payment";
 
 export function ManageAppointment() {
@@ -231,4 +232,12 @@ export function ManageAppointment() {
       </Dialog>
     </div>
   );
+}
+
+/** Cabeçalho com o negócio dono do agendamento (independe do subdomínio/link em que a página foi aberta). */
+export function ManageHeader() {
+  const { token } = useParams<{ token: string }>();
+  const appointment = useAppointmentByToken(token);
+  const b = appointment.data?.business;
+  return <SiteHeader business={b ? { name: b.name, slug: b.slug, segment: b.segment } : null} />;
 }

@@ -3,6 +3,16 @@ import { env } from '../common/env.js';
 
 export const GOOGLE_SCOPES = ['openid', 'email', 'https://www.googleapis.com/auth/calendar.events'];
 
+/** Evento como vem do events.list (só os campos usados para saber se ocupa o horário). */
+export interface GoogleListedEvent {
+  status?: string;
+  transparency?: string;
+  start?: { dateTime?: string; date?: string };
+  end?: { dateTime?: string; date?: string };
+  extendedProperties?: { private?: Record<string, string> };
+  attendees?: Array<{ self?: boolean; responseStatus?: string }>;
+}
+
 export interface GoogleEventBody {
   summary: string;
   description: string;
@@ -77,6 +87,32 @@ export class GoogleClient {
     const data = (await res.json().catch(() => ({}))) as { id?: string };
     if (!res.ok || !data.id) throw new Error(`Google Calendar: HTTP ${res.status}`);
     return data.id;
+  }
+
+  /** Eventos do calendário no intervalo (recorrentes já expandidos). Usa o escopo calendar.events. */
+  async listEvents(accessToken: string, calendarId: string, timeMin: Date, timeMax: Date): Promise<GoogleListedEvent[]> {
+    const items: GoogleListedEvent[] = [];
+    let pageToken: string | undefined;
+    for (let page = 0; page < 5; page++) {
+      const params = new URLSearchParams({
+        timeMin: timeMin.toISOString(),
+        timeMax: timeMax.toISOString(),
+        singleEvents: 'true',
+        maxResults: '250',
+        fields: 'nextPageToken,items(status,transparency,start,end,extendedProperties,attendees(self,responseStatus))',
+        ...(pageToken ? { pageToken } : {}),
+      });
+      const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?${params.toString()}`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+        signal: AbortSignal.timeout(4_000),
+      });
+      const data = (await res.json().catch(() => ({}))) as { items?: GoogleListedEvent[]; nextPageToken?: string };
+      if (!res.ok) throw new Error(`Google Calendar: HTTP ${res.status}`);
+      items.push(...(data.items ?? []));
+      pageToken = data.nextPageToken;
+      if (!pageToken) break;
+    }
+    return items;
   }
 
   async deleteEvent(accessToken: string, calendarId: string, eventId: string): Promise<void> {

@@ -58,5 +58,13 @@ Arquivo vivo: o que já foi feito e o que falta. Atualizado ao fim de cada fase.
 - [x] PROFESSIONAL não vê e-mails/comissão dos colegas; agenda limitada a 62 dias por consulta
 - [x] Testes: 58 unitários + 52 e2e (`test/review.e2e-spec.ts`)
 
+## v3 — limitações resolvidas ✅
+- [x] Rate limit distribuído (Upstash Redis via REST, fallback em memória)
+- [x] Lembretes a cada 15 min por agendador externo (cron-job.org; GET/POST `/internal/send-reminders`)
+- [x] Pix pago após expirar: reativa se o horário estiver livre, senão estorna (Mercado Pago) e avisa; "Pix a estornar" no dashboard
+- [x] Google Calendar: eventos *Ocupado* da agenda pessoal bloqueiam horários (events.list, cache 2 min)
+- [x] "Meu agendamento" mostra o negócio do agendamento em qualquer domínio
+- [x] Guia das variáveis: `docs/VARIAVEIS.md`
+
 ## Pendências / ideias
 - Ver "Limitações conhecidas e próximos passos" no README.

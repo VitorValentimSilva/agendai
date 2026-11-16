@@ -35,6 +35,40 @@
         "tags": [
           "Interno"
         ]
+      },
+      "post": {
+        "operationId": "Internal_sendRemindersPost",
+        "parameters": [
+          {
+            "name": "authorization",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReminderRunDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mesmo que o GET (para agendadores que só fazem POST)",
+        "tags": [
+          "Interno"
+        ]
       }
     },
     "/internal/reset-demo": {
@@ -1421,6 +1455,48 @@
         ]
       }
     },
+    "/admin/payments/{id}/refund": {
+      "post": {
+        "operationId": "Agenda_refundPix",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão"
+          },
+          "403": {
+            "description": "Sem permissão para o papel atual"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Tenta de novo o estorno de um Pix pago de agendamento cancelado",
+        "tags": [
+          "Painel — agenda"
+        ]
+      }
+    },
     "/admin/appointments": {
       "get": {
         "operationId": "Agenda_agenda",
@@ -2599,11 +2675,16 @@
           },
           "failed": {
             "type": "number"
+          },
+          "expired": {
+            "type": "number",
+            "description": "Pix expirados cancelados nesta rodada"
           }
         },
         "required": [
           "sent",
-          "failed"
+          "failed",
+          "expired"
         ]
       },
       "ResetDemoResultDto": {
@@ -3448,6 +3529,13 @@
           "name": {
             "type": "string"
           },
+          "slug": {
+            "type": "string"
+          },
+          "segment": {
+            "type": "string",
+            "example": "barbearia"
+          },
           "timezone": {
             "type": "string"
           },
@@ -3467,6 +3555,8 @@
         },
         "required": [
           "name",
+          "slug",
+          "segment",
           "timezone",
           "address",
           "whatsapp",
@@ -3881,6 +3971,38 @@
           "payment"
         ]
       },
+      "PixToRefundDto": {
+        "type": "object",
+        "properties": {
+          "paymentId": {
+            "type": "string"
+          },
+          "appointmentCode": {
+            "type": "string"
+          },
+          "customerName": {
+            "type": "string"
+          },
+          "customerWhatsapp": {
+            "type": "string"
+          },
+          "amountCents": {
+            "type": "number"
+          },
+          "paidAt": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "paymentId",
+          "appointmentCode",
+          "customerName",
+          "customerWhatsapp",
+          "amountCents",
+          "paidAt"
+        ]
+      },
       "DashboardDto": {
         "type": "object",
         "properties": {
@@ -3927,6 +4049,13 @@
             "items": {
               "$ref": "#/components/schemas/AdminAppointmentDto"
             }
+          },
+          "pixToRefund": {
+            "description": "Pix pagos de agendamentos cancelados cujo estorno automático falhou (só OWNER)",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PixToRefundDto"
+            }
           }
         },
         "required": [
@@ -3940,7 +4069,8 @@
           "noShowRate",
           "topServices",
           "series",
-          "upcoming"
+          "upcoming",
+          "pixToRefund"
         ]
       },
       "TimeOffDto": {

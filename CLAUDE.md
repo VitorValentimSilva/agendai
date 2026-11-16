@@ -38,6 +38,10 @@ Dois apps independentes, sem workspaces e sem pacote compartilhado — cada um f
 - Multiempresa: rotas públicas leem o header `x-business-slug` (`@TenantSlug()`); o proxy do Next (`src/proxy.ts`)
   preenche a partir do subdomínio ou do cookie do link `/n/slug`.
 - Segredos de terceiros sempre cifrados com `encryptSecret` (`src/common/crypto.ts`) e nunca devolvidos nas respostas.
+- Rate limit: `RateLimitGuard` usa Upstash (REST) se `UPSTASH_REDIS_REST_*`/`KV_REST_API_*` existirem, senão memória.
+- Google ocupado: `GoogleBusyService` se registra no `AvailabilityService` (`setExternalBusyProvider`); painel (`relaxed`) ignora.
+- Pix pago após expirar: `PaymentsService.markPaid` reativa (`AppointmentsService.reactivate`) ou estorna (`refund`).
+- `docs/VARIAVEIS.md`: passo a passo de cada variável da Vercel.
 - Integrações externas têm modo simulado sem credenciais; nos testes e2e, sobrescreva o client (`createTestApp(b => b.overrideProvider(...))`).
 
 ## Convenções

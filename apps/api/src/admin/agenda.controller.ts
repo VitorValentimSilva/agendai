@@ -1,7 +1,7 @@
-import { BadRequestException, Body, Controller, ForbiddenException, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import { BadGatewayException, BadRequestException, Body, Controller, ForbiddenException, Get, HttpCode, NotFoundException, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiCreatedResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { PrismaService } from '../common/prisma.service.js';
-import { CurrentUser, type SessionUser } from '../common/decorators.js';
+import { CurrentUser, Roles, type SessionUser } from '../common/decorators.js';
 import { BusinessService } from '../business/business.service.js';
 import { AvailabilityService } from '../availability/availability.service.js';
 import { AppointmentsService } from '../appointments/appointments.service.js';
@@ -13,6 +13,7 @@ import { AvailabilityDto, AvailabilityQueryDto } from '../public/public.dto.js';
 import { AdminController } from './admin.decorator.js';
 import { AgendaDto, AgendaQueryDto, DashboardDto, ManualAppointmentDto } from './admin.dto.js';
 import { DashboardService } from './dashboard.service.js';
+import { PaymentsService } from '../payments/payments.service.js';
 
 function scopedProfessional(user: SessionUser, requested?: string): string | undefined {
   if (user.role === 'PROFESSIONAL') {
@@ -33,12 +34,29 @@ export class AgendaController {
     private readonly availability: AvailabilityService,
     private readonly appointments: AppointmentsService,
     private readonly dashboard: DashboardService,
+    private readonly payments: PaymentsService,
   ) {}
 
   @Get('dashboard')
   @ApiOperation({ summary: 'Métricas do painel (no papel PROFESSIONAL, só a própria agenda)' })
   @ApiOkResponse({ type: DashboardDto })
   getDashboard(@CurrentUser() user: SessionUser): Promise<DashboardDto> {
+    return this.dashboard.get(user);
+  }
+
+  @Post('payments/:id/refund')
+  @Roles('OWNER')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Tenta de novo o estorno de um Pix pago de agendamento cancelado' })
+  @ApiOkResponse({ type: DashboardDto })
+  async refundPix(@CurrentUser() user: SessionUser, @Param('id') id: string): Promise<DashboardDto> {
+    const payment = await this.prisma.payment.findFirst({
+      where: { id, status: 'PAID', appointment: { businessId: user.businessId, status: 'CANCELED' } },
+    });
+    if (!payment) throw new NotFoundException('Pagamento não encontrado ou já estornado.');
+    if (!(await this.payments.refund(payment.id))) {
+      throw new BadGatewayException('O Mercado Pago não aceitou o estorno agora. Tente de novo ou devolva pelo app do Mercado Pago.');
+    }
     return this.dashboard.get(user);
   }
 

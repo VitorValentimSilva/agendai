@@ -2,13 +2,16 @@
 
 import Link from "next/link";
 import { useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { useBusiness } from "@/hooks/use-public";
 
 export const DEMO_SLUG = "navalha-de-ouro";
 
 export function SiteFooter() {
   const business = useBusiness();
-  const b = business.data;
+  // Na página do agendamento o negócio vem do próprio agendamento (pode não ser o do domínio atual)
+  const onManagePage = usePathname().startsWith("/meu-agendamento");
+  const b = onManagePage ? undefined : business.data;
 
   // Título da aba com o nome do negócio (o site é white-label)
   useEffect(() => {

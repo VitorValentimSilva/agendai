@@ -18,6 +18,12 @@ const fakeMp = {
     if (!s) throw new Error('not found');
     return s;
   },
+  refunds: [] as string[],
+  failRefund: false,
+  async refund(_token: string, id: string) {
+    if (fakeMp.failRefund) throw new Error('MP fora do ar');
+    fakeMp.refunds.push(id);
+  },
   simulatedPix: (amountCents: number, reference: string) => new MercadoPagoClient().simulatedPix(amountCents, reference),
 };
 
@@ -145,5 +151,74 @@ describe('Pix (e2e)', () => {
     const settings = await ctx.http().get('/admin/business').set('Cookie', owner).expect(200);
     expect(settings.body.hasMercadoPagoToken).toBe(true);
     expect(JSON.stringify(settings.body)).not.toContain('TEST-TOKEN');
+  });
+
+  describe('Pix pago depois de expirar', () => {
+    const webhook = (providerId: string, req: string) =>
+      ctx
+        .http()
+        .post('/webhooks/mercadopago')
+        .query({ 'data.id': providerId, type: 'payment' })
+        .set('x-signature', mpSignature(providerId, req))
+        .set('x-request-id', req)
+        .send({ type: 'payment', data: { id: providerId } })
+        .expect(200);
+
+    async function expiredPix(name: string, phone: string) {
+      const { res, slot } = await book(name, phone);
+      const providerId = `mp_${fakeMp.created.length}`;
+      await ctx.prisma.payment.updateMany({ where: { appointment: { manageToken: res.body.manageToken } }, data: { expiresAt: new Date(Date.now() - 1000) } });
+      // Qualquer acesso expira: o agendamento é cancelado e o horário liberado
+      const expired = await ctx.http().get(`/appointments/manage/${res.body.manageToken}`).expect(200);
+      expect(expired.body.status).toBe('CANCELED');
+      fakeMp.statuses.set(providerId, { status: 'approved', externalReference: fakeMp.created.at(-1)!.externalReference });
+      return { res, slot, providerId };
+    }
+
+    it('horário ainda livre: reativa e confirma, sem estorno', async () => {
+      const { res, providerId } = await expiredPix('Pix Atrasado Livre', '(19) 96666-6661');
+      const before = fakeMp.refunds.length;
+      expect((await webhook(providerId, 'late-1')).body.result).toBe('paid');
+      const view = await ctx.http().get(`/appointments/manage/${res.body.manageToken}`).expect(200);
+      expect(view.body).toMatchObject({ status: 'CONFIRMED', payment: { status: 'PAID' } });
+      expect(fakeMp.refunds.length).toBe(before);
+      const msg = await ctx.prisma.messageLog.findFirst({ where: { kind: 'payment', appointment: { manageToken: res.body.manageToken } } });
+      expect(msg?.body).toContain('confirmado');
+    });
+
+    it('horário ocupado por outra pessoa: estorna automaticamente e avisa o cliente', async () => {
+      const { res, slot, providerId } = await expiredPix('Pix Atrasado Ocupado', '(19) 96666-6662');
+      await ctx
+        .http()
+        .post('/appointments')
+        .send({ serviceId: service.id, professionalId: res.body.professional.id, startsAt: slot.start, customer: { name: 'Chegou Antes', whatsapp: '(19) 96666-6663' } })
+        .expect(201);
+      expect((await webhook(providerId, 'late-2')).body.result).toBe('paid');
+      const view = await ctx.http().get(`/appointments/manage/${res.body.manageToken}`).expect(200);
+      expect(view.body).toMatchObject({ status: 'CANCELED', payment: { status: 'REFUNDED' } });
+      expect(fakeMp.refunds).toContain(providerId);
+      const msg = await ctx.prisma.messageLog.findFirst({ where: { kind: 'payment', appointment: { manageToken: res.body.manageToken } } });
+      expect(msg?.body).toContain('devolvemos');
+    });
+
+    it('estorno recusado pelo MP: fica no painel do dono para tentar de novo', async () => {
+      const { res, slot, providerId } = await expiredPix('Pix Estorno Falha', '(19) 96666-6664');
+      await ctx
+        .http()
+        .post('/appointments')
+        .send({ serviceId: service.id, professionalId: res.body.professional.id, startsAt: slot.start, customer: { name: 'Outro Antes', whatsapp: '(19) 96666-6665' } })
+        .expect(201);
+      fakeMp.failRefund = true;
+      await webhook(providerId, 'late-3');
+      const dash = await ctx.http().get('/admin/dashboard').set('Cookie', owner).expect(200);
+      const item = dash.body.pixToRefund.find((p: { customerName: string }) => p.customerName === 'Pix Estorno Falha');
+      expect(item).toBeDefined();
+      await ctx.http().post(`/admin/payments/${item.paymentId}/refund`).set('Cookie', owner).expect(502);
+      fakeMp.failRefund = false;
+      const after = await ctx.http().post(`/admin/payments/${item.paymentId}/refund`).set('Cookie', owner).expect(200);
+      expect(after.body.pixToRefund.find((p: { paymentId: string }) => p.paymentId === item.paymentId)).toBeUndefined();
+      const barber = await login(ctx, 'barbeiro@agendai.app');
+      await ctx.http().post(`/admin/payments/${item.paymentId}/refund`).set('Cookie', barber).expect(403);
+    });
   });
 });

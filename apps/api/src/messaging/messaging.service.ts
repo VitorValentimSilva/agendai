@@ -39,7 +39,7 @@ export class MessagingService {
     appointmentId?: string;
     customerId?: string;
     phone: string;
-    kind: 'reminder' | 'waitlist' | 'reply';
+    kind: 'reminder' | 'waitlist' | 'reply' | 'payment';
     text: string;
     template?: { name: string; bodyParams: string[]; quickReplyPayloads?: string[] };
   }): Promise<boolean> {

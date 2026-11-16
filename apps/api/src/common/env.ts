@@ -102,6 +102,13 @@ export const env = {
     if (raw === 'false') return false;
     return process.env.NODE_ENV !== 'production';
   },
+  /** Upstash Redis (rate limit distribuído). Aceita os nomes da integração da Vercel (KV_*). */
+  get upstashRestUrl() {
+    return process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL || '';
+  },
+  get upstashRestToken() {
+    return process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN || '';
+  },
   get throttleLimit() {
     return int('THROTTLE_LIMIT', 60);
   },

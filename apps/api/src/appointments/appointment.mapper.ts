@@ -25,6 +25,8 @@ export function toPublicAppointment(a: AppointmentWithRelations, business: Busin
     customerName: a.customer.name,
     business: {
       name: business.name,
+      slug: business.slug,
+      segment: business.segment,
       timezone: business.timezone,
       address: `${business.addressLine} — ${business.city}/${business.state}`,
       whatsapp: business.whatsapp,

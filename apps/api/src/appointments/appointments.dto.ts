@@ -99,6 +99,8 @@ export class AppointmentCustomerRefDto extends NamedRefDto {
 
 export class PublicBusinessRefDto {
   @ApiProperty() name: string;
+  @ApiProperty() slug: string;
+  @ApiProperty({ example: 'barbearia' }) segment: string;
   @ApiProperty() timezone: string;
   @ApiProperty() address: string;
   @ApiProperty() whatsapp: string;

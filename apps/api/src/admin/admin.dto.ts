@@ -71,6 +71,15 @@ export class TopServiceDto {
   @ApiProperty() revenueCents: number;
 }
 
+export class PixToRefundDto {
+  @ApiProperty() paymentId: string;
+  @ApiProperty() appointmentCode: string;
+  @ApiProperty() customerName: string;
+  @ApiProperty() customerWhatsapp: string;
+  @ApiProperty() amountCents: number;
+  @ApiProperty({ type: String, nullable: true }) paidAt: string | null;
+}
+
 export class DashboardDto {
   @ApiProperty() timezone: string;
   @ApiProperty() today: string;
@@ -83,6 +92,8 @@ export class DashboardDto {
   @ApiProperty({ type: [TopServiceDto] }) topServices: TopServiceDto[];
   @ApiProperty({ type: [DashboardSeriesPointDto] }) series: DashboardSeriesPointDto[];
   @ApiProperty({ type: [AdminAppointmentDto] }) upcoming: AdminAppointmentDto[];
+  @ApiProperty({ type: [PixToRefundDto], description: 'Pix pagos de agendamentos cancelados cujo estorno automático falhou (só OWNER)' })
+  pixToRefund: PixToRefundDto[];
 }
 
 // ---------- Serviços ----------

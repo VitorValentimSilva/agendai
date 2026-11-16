@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
-import { ArrowRight, CalendarCheck, CalendarDays, CalendarX, TrendingUp, UserX, Wallet } from "lucide-react";
+import { ArrowRight, CalendarCheck, CalendarDays, CalendarX, LoaderCircle, TrendingUp, TriangleAlert, Undo2, UserX, Wallet } from "lucide-react";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import { EmptyState, ErrorState } from "@/components/site/state";
-import { useDashboard, useMe, type AdminAppointment } from "@/hooks/use-admin";
+import { useDashboard, useMe, useRefundPix, type AdminAppointment } from "@/hooks/use-admin";
 import { formatInTz, formatLocalDate, formatPrice, formatTime } from "@/lib/format";
 import { STATUS_LABEL, STATUS_VARIANT } from "@/lib/status";
 import { PageHeader } from "./page-header";
@@ -28,6 +28,7 @@ const pct = (n: number) => `${(n * 100).toLocaleString("pt-BR", { maximumFractio
 export function DashboardView() {
   const me = useMe();
   const dashboard = useDashboard();
+  const refund = useRefundPix();
   const [metric, setMetric] = useState<"appointments" | "revenueCents">("appointments");
   const [selected, setSelected] = useState<AdminAppointment | null>(null);
   const d = dashboard.data;
@@ -66,6 +67,34 @@ export function DashboardView() {
         <div className="mb-4">
           <BookingLinkCard slug={me.data.businessSlug} />
         </div>
+      )}
+
+      {d && d.pixToRefund.length > 0 && (
+        <Card className="mb-4 border-destructive/40 bg-destructive/5" role="alert">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <TriangleAlert className="size-4 text-destructive" /> Pix a estornar
+            </CardTitle>
+            <CardDescription>
+              Clientes pagaram depois do prazo, o horário já estava ocupado e o estorno automático não passou. Tente de novo ou devolva pelo app do
+              Mercado Pago.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {d.pixToRefund.map((p) => (
+              <div key={p.paymentId} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-card px-3 py-2 text-sm">
+                <span>
+                  <span className="font-medium">{p.customerName}</span> · {formatPrice(p.amountCents)} ·{" "}
+                  <span className="font-mono text-xs">{p.appointmentCode}</span>
+                </span>
+                <Button size="sm" variant="outline" disabled={refund.isPending} onClick={() => refund.mutate(p.paymentId)}>
+                  {refund.isPending && refund.variables === p.paymentId ? <LoaderCircle className="animate-spin" /> : <Undo2 />}
+                  Estornar
+                </Button>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
       )}
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-6">
