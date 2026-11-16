@@ -1,6 +1,7 @@
 // Gera os prints do README em docs/screenshots (375px e 1440px).
 // Requer API + web rodando. Uso: CHROME_PATH=/usr/bin/google-chrome npm run screenshots
 // Com API_URL e CRON_SECRET definidos, reseta os dados da demo antes (prints sempre iguais).
+// Com PUBLIC_WEB_URL, o link de agendamento do dashboard aparece com o domínio da demo publicada.
 import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { bookingUntil, clickText, launch, login, newPage, settle, WEB_URL } from "./lib/browser.mjs";
@@ -34,6 +35,23 @@ async function shot(page, file, { full = true } = {}) {
   console.log(`  ✔ ${file}.png`);
 }
 
+/**
+ * Rodando local, o card "Seu link de agendamento" mostraria http://localhost:3000.
+ * Com PUBLIC_WEB_URL (ex.: https://agendai-glev.vercel.app), o print mostra o link como fica na demo publicada.
+ */
+const PUBLIC_WEB_URL = process.env.PUBLIC_WEB_URL?.replace(/\/$/, "");
+async function showPublicLink(page) {
+  if (!PUBLIC_WEB_URL) return;
+  await page.evaluate(
+    (origin, local) => {
+      const el = document.querySelector('[data-testid="booking-link"]');
+      if (el?.textContent) el.textContent = el.textContent.replace(local, origin);
+    },
+    PUBLIC_WEB_URL,
+    WEB_URL,
+  );
+}
+
 const browser = await launch();
 try {
   for (const vp of VIEWPORTS) {
@@ -61,6 +79,7 @@ try {
     await shot(page, `08-login${suffix}`, { full: false });
 
     await login(page, "demo@agendai.app");
+    await showPublicLink(page);
     await shot(page, `09-dashboard${suffix}`);
     await page.goto(`${WEB_URL}/admin/agenda`, { waitUntil: "networkidle0" });
     await settle(page, 1000);
