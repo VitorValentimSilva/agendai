@@ -42,8 +42,9 @@ describe('Lembretes e confirmação por WhatsApp (e2e, modo simulado)', () => {
     expect(log).toMatchObject({ provider: 'SIMULATED', status: 'sent', direction: 'OUT' });
     expect(log.body).toContain('Responda *1*');
 
-    const second = await ctx.http().get('/internal/send-reminders').set(CRON).expect(200);
-    expect(second.body.sent).toBe(0);
+    // Agendador externo (cron-job.org) pode chamar via POST a cada 15 min: não duplica
+    const second = await ctx.http().post('/internal/send-reminders').set(CRON).expect(200);
+    expect(second.body).toMatchObject({ sent: 0, failed: 0, expired: 0 });
   });
 
   it('resposta "1" (simulada no painel) confirma o agendamento', async () => {
