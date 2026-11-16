@@ -223,6 +223,23 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/admin/payments/{id}/refund": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Tenta de novo o estorno de um Pix pago de agendamento cancelado */
+        post: operations["Agenda_refundPix"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/professionals": {
         parameters: {
             query?: never;
@@ -772,7 +789,8 @@ export type paths = {
         /** Envia lembretes de WhatsApp devidos (Authorization: Bearer CRON_SECRET) */
         get: operations["Internal_sendReminders"];
         put?: never;
-        post?: never;
+        /** Mesmo que o GET (para agendadores que só fazem POST) */
+        post: operations["Internal_sendRemindersPost"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1060,6 +1078,8 @@ export type components = {
             expectedRevenueMonthCents: number;
             /** @description 0..1, últimos 30 dias */
             noShowRate: number;
+            /** @description Pix pagos de agendamentos cancelados cujo estorno automático falhou (só OWNER) */
+            pixToRefund: components["schemas"]["PixToRefundDto"][];
             realizedRevenueMonthCents: number;
             series: components["schemas"]["DashboardSeriesPointDto"][];
             timezone: string;
@@ -1152,6 +1172,14 @@ export type components = {
         PaymentMode: "NONE" | "DEPOSIT" | "FULL";
         /** @enum {string} */
         PaymentStatus: "PENDING" | "PAID" | "EXPIRED" | "CANCELED" | "REFUNDED";
+        PixToRefundDto: {
+            amountCents: number;
+            appointmentCode: string;
+            customerName: string;
+            customerWhatsapp: string;
+            paidAt: string | null;
+            paymentId: string;
+        };
         ProfessionalInputDto: {
             active?: boolean;
             avatarUrl?: string | null;
@@ -1216,6 +1244,9 @@ export type components = {
             /** @description Até quantos dias à frente dá para agendar/remarcar */
             maxAdvanceDays: number;
             name: string;
+            /** @example barbearia */
+            segment: string;
+            slug: string;
             timezone: string;
             whatsapp: string;
         };
@@ -1245,6 +1276,8 @@ export type components = {
             priceCents: number;
         };
         ReminderRunDto: {
+            /** @description Pix expirados cancelados nesta rodada */
+            expired: number;
             failed: number;
             sent: number;
         };
@@ -2014,6 +2047,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SimulateReplyResultDto"];
+                };
+            };
+            /** @description Sem sessão */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sem permissão para o papel atual */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    Agenda_refundPix: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardDto"];
                 };
             };
             /** @description Sem sessão */
@@ -3222,6 +3290,27 @@ export interface operations {
         };
     };
     Internal_sendReminders: {
+        parameters: {
+            query?: never;
+            header: {
+                authorization: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReminderRunDto"];
+                };
+            };
+        };
+    };
+    Internal_sendRemindersPost: {
         parameters: {
             query?: never;
             header: {

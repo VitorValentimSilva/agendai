@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { SiteFooter } from "@/components/site/site-footer";
 
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
@@ -10,7 +11,10 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
         Pular para o conteúdo
       </a>
       {children}
-      <SiteFooter />
+      {/* usePathname no rodapé exige Suspense com cacheComponents */}
+      <Suspense fallback={null}>
+        <SiteFooter />
+      </Suspense>
     </div>
   );
 }
