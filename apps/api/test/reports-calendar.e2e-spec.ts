@@ -1,5 +1,6 @@
 import { createTestApp, findFreeSlot, login, type TestContext } from './helpers.js';
 import { GoogleClient } from '../src/calendar/google.client.js';
+import { GoogleBusyService } from '../src/calendar/google-busy.service.js';
 
 /** Google falso: registra as chamadas de sincronização. */
 const fakeGoogle = {
@@ -20,6 +21,11 @@ const fakeGoogle = {
     fakeGoogle.calls.push({ op: 'delete', eventId });
   },
   async revoke() {},
+  /** Agenda pessoal falsa: eventos devolvidos pelo events.list */
+  personal: [] as Array<{ start: { dateTime: string }; end: { dateTime: string }; extendedProperties?: { private: Record<string, string> } }>,
+  async listEvents() {
+    return fakeGoogle.personal;
+  },
 };
 
 describe('Relatórios, CSV, feed iCal e Google Calendar (e2e)', () => {
@@ -123,6 +129,26 @@ describe('Relatórios, CSV, feed iCal e Google Calendar (e2e)', () => {
 
     await ctx.http().post(`/appointments/manage/${booked.body.manageToken}/cancel`).expect(201);
     expect(fakeGoogle.calls.at(-1)).toEqual({ op: 'delete', eventId: 'gev_1' });
+
+    // Compromisso pessoal no Google bloqueia o horário no site (eventos do próprio Agendaí não contam duas vezes)
+    const slotsBefore = await ctx.http().get('/availability').query({ serviceId, professionalId: me.professionalId, date: slot.date }).expect(200);
+    expect(slotsBefore.body.slots.map((s: { start: string }) => s.start)).toContain(slot.start);
+    const end = new Date(new Date(slot.start).getTime() + 30 * 60_000).toISOString();
+    fakeGoogle.personal = [
+      { start: { dateTime: slot.start }, end: { dateTime: end } },
+      { start: { dateTime: slotsBefore.body.slots[0].start }, end: { dateTime: slotsBefore.body.slots[0].end }, extendedProperties: { private: { agendaiAppointmentId: 'x' } } },
+    ];
+    ctx.app.get(GoogleBusyService).forget(me.professionalId);
+    const slotsAfter = await ctx.http().get('/availability').query({ serviceId, professionalId: me.professionalId, date: slot.date }).expect(200);
+    const startsAfter = slotsAfter.body.slots.map((s: { start: string }) => s.start);
+    expect(startsAfter).not.toContain(slot.start);
+    expect(startsAfter).toContain(slotsBefore.body.slots[0].start);
+    await ctx
+      .http()
+      .post('/appointments')
+      .send({ serviceId, professionalId: me.professionalId, startsAt: slot.start, customer: { name: 'Bate Google', whatsapp: '(19) 94444-2222' } })
+      .expect(409);
+    fakeGoogle.personal = [];
 
     await ctx.http().delete(`/admin/professionals/${me.professionalId}/google`).set('Cookie', barber).expect(204);
     const after = await ctx.prisma.professional.findUniqueOrThrow({ where: { id: me.professionalId } });
