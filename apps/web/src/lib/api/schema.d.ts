@@ -172,6 +172,40 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/admin/integrations/mercadopago": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Desconecta a conta do Mercado Pago (desliga a cobrança Pix fora da demo) */
+        delete: operations["MercadoPagoOAuthAdmin_disconnect"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/integrations/mercadopago/connect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** URL para conectar a conta do Mercado Pago do negócio (OAuth) */
+        get: operations["MercadoPagoOAuthAdmin_connect"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/messages": {
         parameters: {
             query?: never;
@@ -984,6 +1018,7 @@ export type components = {
             id: string;
             instagram: string | null;
             maxAdvanceDays: number;
+            mercadoPago: components["schemas"]["MercadoPagoConnectionDto"];
             minAdvanceMinutes: number;
             name: string;
             paymentExpiryMinutes: number;
@@ -997,6 +1032,9 @@ export type components = {
             state: string;
             timezone: string;
             whatsapp: string;
+        };
+        ConnectUrlDto: {
+            url: string;
         };
         CreateAppointmentDto: {
             customer: components["schemas"]["CustomerInputDto"];
@@ -1096,6 +1134,8 @@ export type components = {
         IntegrationsDto: {
             /** @description Sincronização com Google Calendar disponível */
             google: boolean;
+            /** @description Botão "Conectar Mercado Pago" disponível (MP_CLIENT_ID/SECRET configurados) */
+            mercadoPagoOAuth: boolean;
             /** @enum {string} */
             pix: "MERCADO_PAGO" | "SIMULATED";
             /** @enum {string} */
@@ -1142,6 +1182,18 @@ export type components = {
             professionalId: string | null;
             /** @enum {string} */
             role: "OWNER" | "PROFESSIONAL";
+        };
+        MercadoPagoConnectionDto: {
+            connected: boolean;
+            /** @description Validade do acesso (renovado automaticamente) */
+            expiresAt: string | null;
+            /** @description ID da conta do Mercado Pago conectada */
+            userId: string | null;
+            /**
+             * @description OAUTH = conectado pelo botão; MANUAL = token colado
+             * @enum {string|null}
+             */
+            via: "OAUTH" | "MANUAL" | null;
         };
         MessageDto: {
             appointmentId: string | null;
@@ -1942,6 +1994,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["IntegrationsDto"];
+                };
+            };
+            /** @description Sem sessão */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sem permissão para o papel atual */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    MercadoPagoOAuthAdmin_disconnect: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BusinessSettingsDto"];
+                };
+            };
+            /** @description Sem sessão */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sem permissão para o papel atual */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    MercadoPagoOAuthAdmin_connect: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectUrlDto"];
                 };
             };
             /** @description Sem sessão */

@@ -51,7 +51,7 @@ export function SettingsView() {
       {settings.data ? (
         <>
           <SettingsForm initial={settings.data} />
-          <AutomationSettings key={settings.data.hasMercadoPagoToken ? "t" : "f"} initial={settings.data} />
+          <AutomationSettings key={`${settings.data.mercadoPago.via ?? "none"}-${settings.data.paymentMode}`} initial={settings.data} />
         </>
       ) : (
         <Skeleton className="h-[600px] w-full rounded-2xl" />
