@@ -421,6 +421,72 @@
         ]
       }
     },
+    "/admin/integrations/mercadopago/connect": {
+      "get": {
+        "operationId": "MercadoPagoOAuthAdmin_connect",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectUrlDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão"
+          },
+          "403": {
+            "description": "Sem permissão para o papel atual"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "URL para conectar a conta do Mercado Pago do negócio (OAuth)",
+        "tags": [
+          "Painel — integrações"
+        ]
+      }
+    },
+    "/admin/integrations/mercadopago": {
+      "delete": {
+        "operationId": "MercadoPagoOAuthAdmin_disconnect",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessSettingsDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão"
+          },
+          "403": {
+            "description": "Sem permissão para o papel atual"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Desconecta a conta do Mercado Pago (desliga a cobrança Pix fora da demo)",
+        "tags": [
+          "Painel — integrações"
+        ]
+      }
+    },
     "/waitlist": {
       "post": {
         "operationId": "WaitlistPublic_join",
@@ -2864,12 +2930,17 @@
           "google": {
             "type": "boolean",
             "description": "Sincronização com Google Calendar disponível"
+          },
+          "mercadoPagoOAuth": {
+            "type": "boolean",
+            "description": "Botão \"Conectar Mercado Pago\" disponível (MP_CLIENT_ID/SECRET configurados)"
           }
         },
         "required": [
           "whatsapp",
           "pix",
-          "google"
+          "google",
+          "mercadoPagoOAuth"
         ]
       },
       "LoginDto": {
@@ -3018,6 +3089,169 @@
           "slug",
           "available",
           "reason"
+        ]
+      },
+      "ConnectUrlDto": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "PaymentMode": {
+        "type": "string",
+        "enum": [
+          "NONE",
+          "DEPOSIT",
+          "FULL"
+        ]
+      },
+      "MercadoPagoConnectionDto": {
+        "type": "object",
+        "properties": {
+          "connected": {
+            "type": "boolean"
+          },
+          "via": {
+            "type": "string",
+            "enum": [
+              "OAUTH",
+              "MANUAL"
+            ],
+            "nullable": true,
+            "description": "OAUTH = conectado pelo botão; MANUAL = token colado"
+          },
+          "userId": {
+            "type": "string",
+            "nullable": true,
+            "description": "ID da conta do Mercado Pago conectada"
+          },
+          "expiresAt": {
+            "type": "string",
+            "nullable": true,
+            "description": "Validade do acesso (renovado automaticamente)"
+          }
+        },
+        "required": [
+          "connected",
+          "via",
+          "userId",
+          "expiresAt"
+        ]
+      },
+      "BusinessSettingsDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "phone": {
+            "type": "string"
+          },
+          "whatsapp": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "instagram": {
+            "type": "string",
+            "nullable": true
+          },
+          "addressLine": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "slotIntervalMinutes": {
+            "type": "number"
+          },
+          "minAdvanceMinutes": {
+            "type": "number"
+          },
+          "maxAdvanceDays": {
+            "type": "number"
+          },
+          "cancellationPolicyHours": {
+            "type": "number"
+          },
+          "segment": {
+            "type": "string"
+          },
+          "remindersEnabled": {
+            "type": "boolean"
+          },
+          "reminderHoursBefore": {
+            "type": "number"
+          },
+          "paymentMode": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaymentMode"
+              }
+            ]
+          },
+          "depositPercent": {
+            "type": "number"
+          },
+          "paymentExpiryMinutes": {
+            "type": "number"
+          },
+          "hasMercadoPagoToken": {
+            "type": "boolean",
+            "description": "Há um token do Mercado Pago salvo (o valor nunca é devolvido)"
+          },
+          "mercadoPago": {
+            "$ref": "#/components/schemas/MercadoPagoConnectionDto"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "description",
+          "phone",
+          "whatsapp",
+          "email",
+          "instagram",
+          "addressLine",
+          "city",
+          "state",
+          "timezone",
+          "slotIntervalMinutes",
+          "minAdvanceMinutes",
+          "maxAdvanceDays",
+          "cancellationPolicyHours",
+          "segment",
+          "remindersEnabled",
+          "reminderHoursBefore",
+          "paymentMode",
+          "depositPercent",
+          "paymentExpiryMinutes",
+          "hasMercadoPagoToken",
+          "mercadoPago"
         ]
       },
       "CustomerInputDto": {
@@ -3177,14 +3411,6 @@
         },
         "required": [
           "url"
-        ]
-      },
-      "PaymentMode": {
-        "type": "string",
-        "enum": [
-          "NONE",
-          "DEPOSIT",
-          "FULL"
         ]
       },
       "OpeningIntervalDto": {
@@ -4593,113 +4819,6 @@
             "nullable": true
           }
         }
-      },
-      "BusinessSettingsDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "slug": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string",
-            "nullable": true
-          },
-          "phone": {
-            "type": "string"
-          },
-          "whatsapp": {
-            "type": "string"
-          },
-          "email": {
-            "type": "string",
-            "nullable": true
-          },
-          "instagram": {
-            "type": "string",
-            "nullable": true
-          },
-          "addressLine": {
-            "type": "string"
-          },
-          "city": {
-            "type": "string"
-          },
-          "state": {
-            "type": "string"
-          },
-          "timezone": {
-            "type": "string"
-          },
-          "slotIntervalMinutes": {
-            "type": "number"
-          },
-          "minAdvanceMinutes": {
-            "type": "number"
-          },
-          "maxAdvanceDays": {
-            "type": "number"
-          },
-          "cancellationPolicyHours": {
-            "type": "number"
-          },
-          "segment": {
-            "type": "string"
-          },
-          "remindersEnabled": {
-            "type": "boolean"
-          },
-          "reminderHoursBefore": {
-            "type": "number"
-          },
-          "paymentMode": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/PaymentMode"
-              }
-            ]
-          },
-          "depositPercent": {
-            "type": "number"
-          },
-          "paymentExpiryMinutes": {
-            "type": "number"
-          },
-          "hasMercadoPagoToken": {
-            "type": "boolean",
-            "description": "Há um token do Mercado Pago salvo (o valor nunca é devolvido)"
-          }
-        },
-        "required": [
-          "id",
-          "name",
-          "slug",
-          "description",
-          "phone",
-          "whatsapp",
-          "email",
-          "instagram",
-          "addressLine",
-          "city",
-          "state",
-          "timezone",
-          "slotIntervalMinutes",
-          "minAdvanceMinutes",
-          "maxAdvanceDays",
-          "cancellationPolicyHours",
-          "segment",
-          "remindersEnabled",
-          "reminderHoursBefore",
-          "paymentMode",
-          "depositPercent",
-          "paymentExpiryMinutes",
-          "hasMercadoPagoToken"
-        ]
       },
       "UpdateBusinessDto": {
         "type": "object",

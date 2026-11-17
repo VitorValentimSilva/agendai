@@ -2,7 +2,7 @@ import { BadGatewayException, BadRequestException, Injectable, Logger, NotFoundE
 import type { Business, Payment } from '@prisma/client';
 import { PrismaService } from '../common/prisma.service.js';
 import { env } from '../common/env.js';
-import { decryptSecret } from '../common/crypto.js';
+import { decryptSecret, encryptSecret } from '../common/crypto.js';
 import { AppointmentsService } from '../appointments/appointments.service.js';
 import { appointmentInclude, type AppointmentWithRelations } from '../appointments/appointment.mapper.js';
 import { MessagingService } from '../messaging/messaging.service.js';
@@ -25,11 +25,16 @@ export class PaymentsService {
     private readonly messaging: MessagingService,
   ) {}
 
-  /** Token do negócio (cifrado no banco) ou o da plataforma; sem nenhum → simulado. */
-  accessTokenFor(business: Pick<Business, 'mercadoPagoTokenEnc'>): string | null {
+  /**
+   * Access token para falar com o Mercado Pago em nome do negócio: o da conta conectada (OAuth, renovado
+   * automaticamente perto de vencer), o colado no painel (manual) ou o da plataforma (MP_ACCESS_TOKEN).
+   * Sem nenhum → null (modo simulado).
+   */
+  async tokenFor(business: Business, now = new Date()): Promise<string | null> {
     if (business.mercadoPagoTokenEnc) {
       try {
-        return decryptSecret(business.mercadoPagoTokenEnc);
+        const current = decryptSecret(business.mercadoPagoTokenEnc);
+        return (await this.refreshIfNeeded(business, now)) ?? current;
       } catch (error) {
         this.logger.error('Não foi possível decifrar o token do Mercado Pago do negócio', error as Error);
       }
@@ -37,8 +42,34 @@ export class PaymentsService {
     return env.mpAccessToken || null;
   }
 
+  /** Renova o token OAuth se faltar menos de 7 dias (o MP dá 180). Devolve o novo token, ou null se não renovou. */
+  private async refreshIfNeeded(business: Business, now: Date): Promise<string | null> {
+    if (business.mercadoPagoConnectedVia !== 'OAUTH' || !business.mercadoPagoRefreshTokenEnc || !env.mpOAuthEnabled) return null;
+    const expiresAt = business.mercadoPagoTokenExpiresAt?.getTime() ?? 0;
+    if (expiresAt - now.getTime() > 7 * 24 * 3600 * 1000) return null;
+    try {
+      const tokens = await this.mp.refreshToken(decryptSecret(business.mercadoPagoRefreshTokenEnc));
+      // Condicional: se duas requisições renovarem juntas, só a primeira grava (o refresh_token antigo deixa de valer)
+      const saved = await this.prisma.business.updateMany({
+        where: { id: business.id, mercadoPagoRefreshTokenEnc: business.mercadoPagoRefreshTokenEnc },
+        data: {
+          mercadoPagoTokenEnc: encryptSecret(tokens.accessToken),
+          mercadoPagoRefreshTokenEnc: encryptSecret(tokens.refreshToken),
+          mercadoPagoTokenExpiresAt: tokens.expiresAt,
+        },
+      });
+      if (saved.count) return tokens.accessToken;
+      const fresh = await this.prisma.business.findUnique({ where: { id: business.id }, select: { mercadoPagoTokenEnc: true } });
+      return fresh?.mercadoPagoTokenEnc ? decryptSecret(fresh.mercadoPagoTokenEnc) : null;
+    } catch (error) {
+      this.logger.warn(`Não foi possível renovar o acesso do Mercado Pago do negócio ${business.id}: ${(error as Error).message}`);
+      return null;
+    }
+  }
+
+  /** Há credencial (do negócio ou da plataforma)? Não decifra nem renova. */
   providerFor(business: Pick<Business, 'mercadoPagoTokenEnc'>): PixProvider {
-    return this.accessTokenFor(business) ? 'MERCADO_PAGO' : 'SIMULATED';
+    return business.mercadoPagoTokenEnc || env.mpAccessToken ? 'MERCADO_PAGO' : 'SIMULATED';
   }
 
   /**
@@ -63,7 +94,7 @@ export class PaymentsService {
   /** Gera a cobrança Pix de um agendamento recém-criado como PENDING_PAYMENT. */
   async createForAppointment(a: AppointmentWithRelations, business: Business, amountCents: number): Promise<Payment> {
     const expiresAt = new Date(Date.now() + business.paymentExpiryMinutes * 60_000);
-    const token = this.accessTokenFor(business);
+    const token = await this.tokenFor(business);
     try {
       const charge = token
         ? await this.mp.createPix({
@@ -161,7 +192,7 @@ export class PaymentsService {
     });
     if (payment.status !== 'PAID') return false;
     if (payment.provider === 'MERCADO_PAGO') {
-      const token = this.accessTokenFor(payment.appointment.business);
+      const token = await this.tokenFor(payment.appointment.business);
       try {
         if (!token || !payment.providerPaymentId) throw new Error('sem access token ou id do pagamento');
         await this.mp.refund(token, payment.providerPaymentId, `refund-${payment.id}`);
@@ -200,7 +231,7 @@ export class PaymentsService {
       include: { appointment: { include: { business: true } } },
     });
     if (!payment || payment.provider !== 'MERCADO_PAGO') return 'ignored';
-    const token = this.accessTokenFor(payment.appointment.business);
+    const token = await this.tokenFor(payment.appointment.business);
     if (!token) return 'ignored';
     const { status, externalReference } = await this.mp.getStatus(token, orderId);
     if (externalReference && externalReference !== payment.appointmentId) return 'ignored';
@@ -243,7 +274,7 @@ export class PaymentsService {
   private async cancelAtProvider(paymentId: string): Promise<void> {
     const payment = await this.prisma.payment.findUnique({ where: { id: paymentId }, include: { appointment: { include: { business: true } } } });
     if (!payment || payment.provider !== 'MERCADO_PAGO' || !payment.providerPaymentId) return;
-    const token = this.accessTokenFor(payment.appointment.business);
+    const token = await this.tokenFor(payment.appointment.business);
     if (!token) return;
     try {
       await this.mp.cancel(token, payment.providerPaymentId, `cancel-${payment.id}`);

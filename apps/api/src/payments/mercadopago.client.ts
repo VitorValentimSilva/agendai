@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { env } from '../common/env.js';
 import { randomBytes } from 'node:crypto';
 
 export interface PixCharge {
@@ -27,6 +28,14 @@ export interface OrderStatus {
   status: string;
   statusDetail: string | null;
   externalReference: string | null;
+}
+
+/** Resposta do /oauth/token (Authorization code ou refresh). */
+export interface MercadoPagoOAuthTokens {
+  accessToken: string;
+  refreshToken: string;
+  expiresAt: Date;
+  userId: string | null;
 }
 
 const money = (cents: number) => (cents / 100).toFixed(2);
@@ -101,6 +110,59 @@ export class MercadoPagoClient {
     };
     if (!res.ok || !data.status) throw new Error(`Mercado Pago: ${data.message ?? `HTTP ${res.status}`}`);
     return { status: data.status, statusDetail: data.status_detail ?? null, externalReference: data.external_reference ?? null };
+  }
+
+  // ---------- OAuth (contas dos negócios conectadas à aplicação da plataforma) ----------
+
+  get oauthRedirectUri(): string {
+    return `${env.publicApiUrl}/integrations/mercadopago/callback`;
+  }
+
+  /** URL em que o dono do negócio faz login no Mercado Pago e autoriza a plataforma. */
+  oauthUrl(state: string): string {
+    const params = new URLSearchParams({
+      client_id: env.mpClientId,
+      response_type: 'code',
+      platform_id: 'mp',
+      state,
+      redirect_uri: this.oauthRedirectUri,
+    });
+    return `https://auth.mercadopago.com/authorization?${params.toString()}`;
+  }
+
+  exchangeCode(code: string): Promise<MercadoPagoOAuthTokens> {
+    return this.tokenRequest({ grant_type: 'authorization_code', code, redirect_uri: this.oauthRedirectUri });
+  }
+
+  /** Renova o acesso (o Mercado Pago devolve um novo access_token E um novo refresh_token). */
+  refreshToken(refreshToken: string): Promise<MercadoPagoOAuthTokens> {
+    return this.tokenRequest({ grant_type: 'refresh_token', refresh_token: refreshToken });
+  }
+
+  private async tokenRequest(params: Record<string, string>): Promise<MercadoPagoOAuthTokens> {
+    const res = await fetch(`${this.base}/oauth/token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ client_id: env.mpClientId, client_secret: env.mpClientSecret, ...params }),
+      signal: AbortSignal.timeout(15_000),
+    });
+    const data = (await res.json().catch(() => ({}))) as {
+      access_token?: string;
+      refresh_token?: string;
+      expires_in?: number;
+      user_id?: number | string;
+      message?: string;
+      error?: string;
+    };
+    if (!res.ok || !data.access_token || !data.refresh_token) {
+      throw new Error(`Mercado Pago (OAuth): ${data.message ?? data.error ?? `HTTP ${res.status}`}`);
+    }
+    return {
+      accessToken: data.access_token,
+      refreshToken: data.refresh_token,
+      expiresAt: new Date(Date.now() + (data.expires_in ?? 180 * 24 * 3600) * 1000),
+      userId: data.user_id != null ? String(data.user_id) : null,
+    };
   }
 
   /** Reembolso total (POST /v1/orders/{id}/refund com body vazio). */

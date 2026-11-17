@@ -229,6 +229,14 @@ export class UpdateCustomerDto {
 
 // ---------- Configurações ----------
 
+export class MercadoPagoConnectionDto {
+  @ApiProperty() connected: boolean;
+  @ApiProperty({ enum: ['OAUTH', 'MANUAL'], nullable: true, description: 'OAUTH = conectado pelo botão; MANUAL = token colado' })
+  via: 'OAUTH' | 'MANUAL' | null;
+  @ApiProperty({ type: String, nullable: true, description: 'ID da conta do Mercado Pago conectada' }) userId: string | null;
+  @ApiProperty({ type: String, nullable: true, description: 'Validade do acesso (renovado automaticamente)' }) expiresAt: string | null;
+}
+
 export class BusinessSettingsDto {
   @ApiProperty() id: string;
   @ApiProperty() name: string;
@@ -253,7 +261,9 @@ export class BusinessSettingsDto {
   @ApiProperty() depositPercent: number;
   @ApiProperty() paymentExpiryMinutes: number;
   @ApiProperty({ description: 'Há um token do Mercado Pago salvo (o valor nunca é devolvido)' }) hasMercadoPagoToken: boolean;
+  @ApiProperty({ type: MercadoPagoConnectionDto }) mercadoPago: MercadoPagoConnectionDto;
 }
+
 
 export class UpdateBusinessDto {
   @ApiPropertyOptional() @IsOptional() @Transform(trim) @IsString() @Length(2, 80) name?: string;

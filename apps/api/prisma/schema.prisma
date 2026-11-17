@@ -55,39 +55,45 @@ enum WaitlistStatus {
 }
 
 model Business {
-  id                      String      @id @default(cuid())
-  name                    String
-  slug                    String      @unique
-  description             String?
-  phone                   String
-  whatsapp                String
-  email                   String?
-  instagram               String?
-  addressLine             String
-  city                    String
-  state                   String
-  timezone                String      @default("America/Sao_Paulo")
+  id                         String      @id @default(cuid())
+  name                       String
+  slug                       String      @unique
+  description                String?
+  phone                      String
+  whatsapp                   String
+  email                      String?
+  instagram                  String?
+  addressLine                String
+  city                       String
+  state                      String
+  timezone                   String      @default("America/Sao_Paulo")
   /// Intervalo entre o início de dois horários consecutivos (minutos)
-  slotIntervalMinutes     Int         @default(30)
+  slotIntervalMinutes        Int         @default(30)
   /// Antecedência mínima para agendar online (minutos)
-  minAdvanceMinutes       Int         @default(60)
+  minAdvanceMinutes          Int         @default(60)
   /// Quantos dias à frente o cliente pode agendar
-  maxAdvanceDays          Int         @default(30)
+  maxAdvanceDays             Int         @default(30)
   /// Até quantas horas antes o cliente pode cancelar/remarcar pelo link
-  cancellationPolicyHours Int         @default(2)
+  cancellationPolicyHours    Int         @default(2)
   /// Segmento escolhido no cadastro (barbearia, salao, clinica, estudio)
-  segment                 String      @default("barbearia")
+  segment                    String      @default("barbearia")
   /// Pix: nenhum, sinal (depositPercent) ou valor total
-  paymentMode             PaymentMode @default(NONE)
-  depositPercent          Int         @default(30)
-  paymentExpiryMinutes    Int         @default(30)
+  paymentMode                PaymentMode @default(NONE)
+  depositPercent             Int         @default(30)
+  paymentExpiryMinutes       Int         @default(30)
   /// Access token do Mercado Pago do negócio, cifrado (AES-256-GCM)
-  mercadoPagoTokenEnc     String?
+  mercadoPagoTokenEnc        String?
+  /// OAuth ("Conectar Mercado Pago"): refresh token cifrado, validade do access token e conta conectada
+  mercadoPagoRefreshTokenEnc String?
+  mercadoPagoTokenExpiresAt  DateTime?   @db.Timestamptz(3)
+  mercadoPagoUserId          String?
+  /// OAUTH (conectado pelo botão) ou MANUAL (token colado no painel)
+  mercadoPagoConnectedVia    String?
   /// Lembretes automáticos por WhatsApp
-  remindersEnabled        Boolean     @default(true)
-  reminderHoursBefore     Int         @default(24)
-  createdAt               DateTime    @default(now()) @db.Timestamptz(3)
-  updatedAt               DateTime    @updatedAt @db.Timestamptz(3)
+  remindersEnabled           Boolean     @default(true)
+  reminderHoursBefore        Int         @default(24)
+  createdAt                  DateTime    @default(now()) @db.Timestamptz(3)
+  updatedAt                  DateTime    @updatedAt @db.Timestamptz(3)
 
   users         User[]
   professionals Professional[]

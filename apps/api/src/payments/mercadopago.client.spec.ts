@@ -61,3 +61,50 @@ describe('MercadoPagoClient (Orders API)', () => {
     expect(fetchMock.mock.calls[2]![0]).toBe('https://api.mercadopago.com/v1/orders/ORD01ABC/cancel');
   });
 });
+
+describe('MercadoPagoClient (OAuth)', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    delete process.env.MP_CLIENT_ID;
+    delete process.env.MP_CLIENT_SECRET;
+  });
+
+  it('monta a URL de autorização com state e redirect da API', () => {
+    process.env.MP_CLIENT_ID = 'app-123';
+    const url = new URL(new MercadoPagoClient().oauthUrl('st-1'));
+    expect(url.origin + url.pathname).toBe('https://auth.mercadopago.com/authorization');
+    expect(Object.fromEntries(url.searchParams)).toMatchObject({
+      client_id: 'app-123',
+      response_type: 'code',
+      platform_id: 'mp',
+      state: 'st-1',
+      redirect_uri: expect.stringMatching(/\/integrations\/mercadopago\/callback$/),
+    });
+  });
+
+  it('troca o code e renova pelo /oauth/token com as credenciais da aplicação', async () => {
+    process.env.MP_CLIENT_ID = 'app-123';
+    process.env.MP_CLIENT_SECRET = 'sec';
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({ access_token: 'APP_USR-a', refresh_token: 'TG-r', expires_in: 15552000, user_id: 42 }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const client = new MercadoPagoClient();
+    const tokens = await client.exchangeCode('code-1');
+    expect(tokens).toMatchObject({ accessToken: 'APP_USR-a', refreshToken: 'TG-r', userId: '42' });
+    expect(tokens.expiresAt.getTime()).toBeGreaterThan(Date.now() + 179 * 86_400_000);
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(url).toBe('https://api.mercadopago.com/oauth/token');
+    expect(JSON.parse(init.body)).toMatchObject({ client_id: 'app-123', client_secret: 'sec', grant_type: 'authorization_code', code: 'code-1' });
+
+    await client.refreshToken('TG-r');
+    expect(JSON.parse(fetchMock.mock.calls[1]![1].body)).toMatchObject({ grant_type: 'refresh_token', refresh_token: 'TG-r' });
+  });
+
+  it('erro do OAuth vira exceção', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 400, json: () => Promise.resolve({ message: 'invalid_grant' }) }));
+    await expect(new MercadoPagoClient().exchangeCode('x')).rejects.toThrow(/invalid_grant/);
+  });
+});

@@ -3,11 +3,13 @@ import { AppointmentEvents } from '../appointments/appointment-events.js';
 import { MercadoPagoClient } from './mercadopago.client.js';
 import { PaymentsService } from './payments.service.js';
 import { MercadoPagoWebhookController } from './mercadopago-webhook.controller.js';
+import { MercadoPagoOAuthService } from './mercadopago-oauth.service.js';
+import { MercadoPagoOAuthAdminController, MercadoPagoOAuthCallbackController } from './mercadopago-oauth.controller.js';
 
 @Global()
 @Module({
-  providers: [MercadoPagoClient, PaymentsService],
-  controllers: [MercadoPagoWebhookController],
+  providers: [MercadoPagoClient, PaymentsService, MercadoPagoOAuthService],
+  controllers: [MercadoPagoWebhookController, MercadoPagoOAuthCallbackController, MercadoPagoOAuthAdminController],
   exports: [PaymentsService, MercadoPagoClient],
 })
 export class PaymentsModule implements OnModuleInit {
