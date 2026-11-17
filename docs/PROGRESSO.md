@@ -72,5 +72,7 @@ Arquivo vivo: o que já foi feito e o que falta. Atualizado ao fim de cada fase.
 
 - [x] Pix migrado da Payments API (sendo descontinuada) para a Orders API do Mercado Pago
 
+- [x] "Conectar Mercado Pago" por OAuth: cada negócio autoriza a conta e o Pix cai direto nela (tokens cifrados e renovados)
+
 ## Pendências / ideias
 - Ver "Limitações conhecidas e próximos passos" no README.
