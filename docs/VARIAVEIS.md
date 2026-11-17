@@ -50,21 +50,31 @@ Não precisa de variável nova: usa o `CRON_SECRET`.
 
 ## 3. Pix — Mercado Pago
 
-`MP_ACCESS_TOKEN` e `MP_WEBHOOK_SECRET` (API). Opcional: `ALLOW_SIMULATIONS` (deixe sem definir).
+**Plataforma (você, uma vez):** `MP_CLIENT_ID`, `MP_CLIENT_SECRET` e `MP_WEBHOOK_SECRET` (API).
+**Cada negócio:** só clica em **Conectar Mercado Pago** no painel e autoriza (OAuth) — o Pix cai na conta dele.
+Opcional: `ALLOW_SIMULATIONS` (deixe sem definir). Não use `MP_ACCESS_TOKEN` em produção multiempresa: com ele, todo
+negócio sem conta conectada cobraria na conta da plataforma.
 
 1. **mercadopago.com.br/developers** → **Suas integrações** → **Criar aplicação**
    → solução **Checkout Transparente** → tipo de API **API de Orders** (a API de Payments está sendo descontinuada;
    o Agendaí usa `/v1/orders`).
-2. A conta precisa ter **chave Pix cadastrada** (app do Mercado Pago → Pix → Minhas chaves).
-3. **Credenciais de produção** → copie o **Access Token** (`APP_USR-…`) → `MP_ACCESS_TOKEN`.
-   Para testar antes, use as **credenciais de teste** (`TEST-…`).
-4. Na mesma aplicação → **Webhooks → Configurar notificações**:
-   - URL de produção: `https://agendai-five.vercel.app/webhooks/mercadopago`
-   - Evento: **Order (Mercado Pago)** → **Salvar**
+2. **Detalhes da aplicação → Editar → URLs de redirecionamento**: adicione
+   `https://agendai-five.vercel.app/integrations/mercadopago/callback` e salve.
+3. **Produção → Credenciais** (ative o ambiente de produção se pedir: setor, site `https://agendai-glev.vercel.app`) →
+   copie **Client ID** → `MP_CLIENT_ID` e **Client Secret** → `MP_CLIENT_SECRET`.
+4. **Configuração de webhooks** (aba **Produção**; repita em **Teste** se quiser):
+   - URL: `https://agendai-five.vercel.app/webhooks/mercadopago`
+   - Evento: só **Order (Mercado Pago)** → **Salvar**
    - **Assinatura secreta → Revelar** → copie → `MP_WEBHOOK_SECRET`.
-5. Redeploy. No painel do negócio: **Configurações → Cobrança** → escolha *Sinal* ou *Total*.
-   Cada negócio pode salvar o **próprio** token ali (fica cifrado); sem ele, usa o `MP_ACCESS_TOKEN` da plataforma.
-6. Estorno automático (Pix pago depois de expirar com horário ocupado) usa o mesmo token — sem variável extra.
+   As notificações de **todos** os negócios conectados chegam por essa aplicação, com essa assinatura.
+5. Redeploy da API. No painel de cada negócio: **Configurações → Pagamento via Pix → Conectar Mercado Pago** →
+   login no Mercado Pago → **Autorizar**. Depois escolha *Sinal* ou *Total* e salve a cobrança.
+   A conta conectada precisa ter **chave Pix** (app do Mercado Pago → Pix → Minhas chaves).
+6. O acesso dura 180 dias e é renovado sozinho (refresh token) quando faltam menos de 7 dias.
+7. **Avançado:** quem tem a própria aplicação pode colar um Access Token em *Avançado: colar access token manualmente*.
+   Para testes, use o Access Token de **teste** da sua aplicação ali e agende com o nome começando por **APRO**
+   (o Mercado Pago aprova sozinho).
+8. Estorno automático (Pix pago depois de expirar com horário ocupado) usa o token do negócio — sem variável extra.
    Se o Mercado Pago recusar, o caso aparece no dashboard em **Pix a estornar**.
 
 ## 4. WhatsApp — Cloud API da Meta

@@ -157,6 +157,6 @@ describe('Relatórios, CSV, feed iCal e Google Calendar (e2e)', () => {
 
   it('status das integrações', async () => {
     const res = await ctx.http().get('/admin/integrations').set('Cookie', owner).expect(200);
-    expect(res.body).toEqual({ whatsapp: 'SIMULATED', pix: 'SIMULATED', google: true });
+    expect(res.body).toEqual({ whatsapp: 'SIMULATED', pix: 'SIMULATED', google: true, mercadoPagoOAuth: false });
   });
 });

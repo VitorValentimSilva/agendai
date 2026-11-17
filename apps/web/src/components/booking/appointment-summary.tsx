@@ -19,6 +19,17 @@ export function StatusBadge({ status }: { status: Appointment["status"] }) {
   return <Badge variant={meta.variant}>{meta.label}</Badge>;
 }
 
+/** Texto do valor considerando o Pix: pago (total ou sinal), aguardando ou estornado. */
+export function priceLabel(a: Appointment): string {
+  const price = formatPrice(a.priceCents);
+  const p = a.payment;
+  if (!p || p.status === "CANCELED" || p.status === "EXPIRED") return `${price} (pagamento no local)`;
+  const rest = a.priceCents - p.amountCents;
+  if (p.status === "REFUNDED") return `${price} · Pix de ${formatPrice(p.amountCents)} estornado`;
+  if (p.status === "PENDING") return rest > 0 ? `${price} · sinal de ${formatPrice(p.amountCents)} via Pix aguardando pagamento` : `${price} via Pix · aguardando pagamento`;
+  return rest > 0 ? `${price} · sinal de ${formatPrice(p.amountCents)} pago via Pix, ${formatPrice(rest)} no local` : `${price} · pago via Pix`;
+}
+
 export function AppointmentSummary({ appointment }: { appointment: Appointment }) {
   const tz = appointment.business.timezone;
   const rows = [
@@ -30,7 +41,7 @@ export function AppointmentSummary({ appointment }: { appointment: Appointment }
       value: `${formatDateLong(appointment.startsAt, tz)}, ${formatTime(appointment.startsAt, tz)} – ${formatTime(appointment.endsAt, tz)}`,
     },
     { icon: MapPin, label: "Onde", value: `${appointment.business.name} — ${appointment.business.address}` },
-    { icon: Wallet, label: "Valor", value: `${formatPrice(appointment.priceCents)} (pagamento no local)` },
+    { icon: Wallet, label: "Valor", value: priceLabel(appointment) },
   ];
   return (
     <ul className="divide-y rounded-2xl border bg-card">

@@ -224,6 +224,7 @@ Outros comandos úteis:
 | `WHATSAPP_REMINDER_TEMPLATE`, `WHATSAPP_WAITLIST_TEMPLATE` | não | Templates aprovados (mensagens fora da janela de 24h) |
 | `MP_ACCESS_TOKEN` | não | Token do Mercado Pago da plataforma (cada negócio também pode salvar o próprio). Sem token, Pix **simulado** |
 | `ALLOW_SIMULATIONS` | não | `true` libera Pix simulado para qualquer negócio. Padrão: só fora de produção; em produção, só a demo simula |
+| `MP_CLIENT_ID`, `MP_CLIENT_SECRET` | não | OAuth da aplicação da plataforma: botão **Conectar Mercado Pago** em cada negócio (redirect `PUBLIC_API_URL/integrations/mercadopago/callback`) |
 | `MP_WEBHOOK_SECRET` | não | Chave das notificações do Mercado Pago (valida `x-signature`) |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | não | OAuth do Google Calendar (redirect: `PUBLIC_API_URL/integrations/google/callback`) |
 | `PORT` | não | Porta local (padrão 3001) |
@@ -292,7 +293,7 @@ São **dois projetos na Vercel** apontando para o mesmo repositório (um para `a
         verificação = `WHATSAPP_VERIFY_TOKEN`, assine o campo `messages`. Crie templates de lembrete (6 variáveis: nome, negócio,
         serviço, profissional, data, hora + botões de resposta rápida) e de fila de espera (5 variáveis).
       - **Mercado Pago (Suas integrações → Webhooks):** URL `https://SUA-API/webhooks/mercadopago`, evento *Order (Mercado Pago)* (Checkout Transparente via **API de Orders**);
-        copie a assinatura secreta para `MP_WEBHOOK_SECRET`. O token do negócio pode ser salvo no painel (Configurações → Pix).
+        copie a assinatura secreta para `MP_WEBHOOK_SECRET`. Cada negócio conecta a própria conta em Configurações → Pagamento via Pix → **Conectar Mercado Pago** (OAuth; cadastre a URL de redirecionamento `https://SUA-API/integrations/mercadopago/callback` na aplicação).
       - **Google Cloud (APIs e serviços):** ative a Google Calendar API, crie um cliente OAuth "Aplicativo da Web" com o
         redirect `https://SUA-API/integrations/google/callback`.
 

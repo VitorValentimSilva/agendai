@@ -1,6 +1,5 @@
 import { BadRequestException, Body, Controller, Get, Patch } from '@nestjs/common';
 import { ApiOkResponse } from '@nestjs/swagger';
-import type { Business } from '@prisma/client';
 import { PrismaService } from '../common/prisma.service.js';
 import { CurrentUser, Roles, type SessionUser } from '../common/decorators.js';
 import { BusinessService } from '../business/business.service.js';
@@ -9,12 +8,7 @@ import { encryptSecret } from '../common/crypto.js';
 import { PaymentsService } from '../payments/payments.service.js';
 import { AdminController } from './admin.decorator.js';
 import { BusinessSettingsDto, UpdateBusinessDto } from './admin.dto.js';
-
-/** Nunca devolve o token cifrado do Mercado Pago — só se ele existe. */
-function toSettings(b: Business): BusinessSettingsDto {
-  const { createdAt: _c, updatedAt: _u, mercadoPagoTokenEnc, ...rest } = b;
-  return { ...rest, hasMercadoPagoToken: Boolean(mercadoPagoTokenEnc) };
-}
+import { toSettings } from './settings.mapper.js';
 
 function isValidTimezone(tz: string): boolean {
   try {
@@ -50,12 +44,21 @@ export class SettingsController {
       const current = await this.businesses.getById(user.businessId);
       const hasToken = mercadoPagoToken !== undefined ? Boolean(mercadoPagoToken) : this.payments.providerFor(current) === 'MERCADO_PAGO';
       if (!hasToken && !this.payments.canSimulate(current)) {
-        throw new BadRequestException('Para cobrar Pix, salve antes o access token do Mercado Pago.');
+        throw new BadRequestException('Para cobrar Pix, conecte antes a conta do Mercado Pago.');
       }
     }
     const data = {
       ...fields,
-      ...(mercadoPagoToken !== undefined ? { mercadoPagoTokenEnc: mercadoPagoToken ? encryptSecret(mercadoPagoToken) : null } : {}),
+      // Token colado à mão substitui uma conexão OAuth (e não tem renovação automática)
+      ...(mercadoPagoToken !== undefined
+        ? {
+            mercadoPagoTokenEnc: mercadoPagoToken ? encryptSecret(mercadoPagoToken) : null,
+            mercadoPagoConnectedVia: mercadoPagoToken ? 'MANUAL' : null,
+            mercadoPagoRefreshTokenEnc: null,
+            mercadoPagoTokenExpiresAt: null,
+            mercadoPagoUserId: null,
+          }
+        : {}),
       ...(dto.whatsapp ? { whatsapp: normalizeWhatsapp(dto.whatsapp) } : {}),
       ...(dto.state ? { state: dto.state.toUpperCase() } : {}),
     };

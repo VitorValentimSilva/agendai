@@ -81,6 +81,16 @@ export const env = {
   get mpAccessToken() {
     return process.env.MP_ACCESS_TOKEN ?? '';
   },
+  /** OAuth da aplicação da plataforma ("Conectar Mercado Pago" por negócio). */
+  get mpClientId() {
+    return process.env.MP_CLIENT_ID ?? '';
+  },
+  get mpClientSecret() {
+    return process.env.MP_CLIENT_SECRET ?? '';
+  },
+  get mpOAuthEnabled() {
+    return Boolean(process.env.MP_CLIENT_ID && process.env.MP_CLIENT_SECRET);
+  },
   /** Chave secreta das notificações (Webhooks) do Mercado Pago, para validar x-signature. */
   get mpWebhookSecret() {
     return process.env.MP_WEBHOOK_SECRET ?? '';
