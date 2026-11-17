@@ -31,7 +31,8 @@ export class MercadoPagoWebhookController {
     if (env.mpWebhookSecret && !validMercadoPagoSignature({ signature, requestId, dataId, secret: env.mpWebhookSecret })) {
       throw new UnauthorizedException('Assinatura inválida.');
     }
-    if (type !== 'payment' || !dataId) return { received: true, result: 'ignored' };
+    // Orders API: notificações do evento "Order (Mercado Pago)" chegam com type=order
+    if ((type !== 'order' && type !== 'orders') || !dataId) return { received: true, result: 'ignored' };
     const result = await this.payments.handleNotification(dataId);
     return { received: true, result };
   }

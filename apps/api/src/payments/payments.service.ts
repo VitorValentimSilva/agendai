@@ -69,12 +69,10 @@ export class PaymentsService {
         ? await this.mp.createPix({
             accessToken: token,
             amountCents,
-            description: `${a.service.name} — ${business.name} (${a.code})`,
             payerEmail: a.customer.email ?? business.email ?? 'pagador@agendai.app',
             payerFirstName: a.customer.name.split(' ')[0] ?? a.customer.name,
             externalReference: a.id,
-            expiresAt,
-            notificationUrl: env.publicApiUrl.startsWith('https://') ? `${env.publicApiUrl}/webhooks/mercadopago` : null,
+            expirationMinutes: business.paymentExpiryMinutes,
             idempotencyKey: a.id,
           })
         : this.mp.simulatedPix(amountCents, a.id);
@@ -112,6 +110,7 @@ export class PaymentsService {
     for (const p of stale) {
       const claimed = await this.prisma.payment.updateMany({ where: { id: p.id, status: 'PENDING' }, data: { status: 'EXPIRED' } });
       if (!claimed.count) continue; // outro processo (webhook/expiração paralela) chegou antes
+      await this.cancelAtProvider(p.id);
       await this.appointments.cancel(p.appointmentId, now, ['PENDING_PAYMENT']);
       expired++;
     }
@@ -120,13 +119,23 @@ export class PaymentsService {
 
   /** Pagamento confirmado: marca como pago e confirma o agendamento (idempotente e sem corrida). */
   async markPaid(payment: Payment, now = new Date()): Promise<void> {
-    const current = await this.prisma.payment.findUnique({ where: { id: payment.id }, select: { status: true } });
-    if (!current || current.status === 'PAID' || current.status === 'REFUNDED') return; // notificação repetida
-    const claimed = await this.prisma.payment.updateMany({
-      where: { id: payment.id, status: current.status },
-      data: { status: 'PAID', paidAt: now },
-    });
-    if (!claimed.count) return; // outro processo chegou antes
+    // Marca como pago lembrando o status anterior (EXPIRED decide se dá para reativar). Se a expiração
+    // mudar o status entre a leitura e a escrita, tenta de novo — o pagamento nunca pode se perder.
+    let current: { status: Payment['status'] } | null = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      current = await this.prisma.payment.findUnique({ where: { id: payment.id }, select: { status: true } });
+      if (!current || current.status === 'PAID' || current.status === 'REFUNDED') return; // notificação repetida
+      const claimed = await this.prisma.payment.updateMany({
+        where: { id: payment.id, status: current.status },
+        data: { status: 'PAID', paidAt: now },
+      });
+      if (claimed.count) break;
+      current = null;
+    }
+    if (!current) {
+      this.logger.error(`Não foi possível registrar o pagamento ${payment.id} (status mudando sem parar).`);
+      return;
+    }
     const confirmed = await this.appointments.confirm(payment.appointmentId, 'PIX', ['PENDING_PAYMENT']);
     if (confirmed) return;
     const appointment = await this.prisma.appointment.findUniqueOrThrow({ where: { id: payment.appointmentId } });
@@ -182,24 +191,25 @@ export class PaymentsService {
   }
 
   /**
-   * Notificação do Mercado Pago: nunca confiamos no corpo — consultamos o pagamento
-   * na API com o token do negócio dono da cobrança.
+   * Notificação do Mercado Pago (Orders API, type=order): nunca confiamos no corpo — consultamos
+   * a order na API com o token do negócio dono da cobrança.
    */
-  async handleNotification(providerPaymentId: string): Promise<'paid' | 'canceled' | 'ignored'> {
+  async handleNotification(orderId: string): Promise<'paid' | 'canceled' | 'ignored'> {
     const payment = await this.prisma.payment.findUnique({
-      where: { providerPaymentId },
+      where: { providerPaymentId: orderId },
       include: { appointment: { include: { business: true } } },
     });
     if (!payment || payment.provider !== 'MERCADO_PAGO') return 'ignored';
     const token = this.accessTokenFor(payment.appointment.business);
     if (!token) return 'ignored';
-    const { status, externalReference } = await this.mp.getStatus(token, providerPaymentId);
+    const { status, externalReference } = await this.mp.getStatus(token, orderId);
     if (externalReference && externalReference !== payment.appointmentId) return 'ignored';
-    if (status === 'approved') {
+    if (status === 'processed') {
       await this.markPaid(payment);
       return 'paid';
     }
-    if ((status === 'cancelled' || status === 'rejected') && payment.status === 'PENDING') {
+    // canceled (cancelada/expirada) ou failed (recusada/expirada)
+    if ((status === 'canceled' || status === 'failed') && payment.status === 'PENDING') {
       const claimed = await this.prisma.payment.updateMany({ where: { id: payment.id, status: 'PENDING' }, data: { status: 'CANCELED' } });
       if (claimed.count) await this.appointments.cancel(payment.appointmentId, new Date(), ['PENDING_PAYMENT']);
       return 'canceled';
@@ -216,8 +226,29 @@ export class PaymentsService {
     await this.markPaid(payment);
   }
 
-  /** Cancela a cobrança pendente quando o agendamento é cancelado. */
+  /** Cancela a cobrança pendente quando o agendamento é cancelado (e a order no Mercado Pago). */
   async cancelPendingFor(appointmentId: string): Promise<void> {
-    await this.prisma.payment.updateMany({ where: { appointmentId, status: 'PENDING' }, data: { status: 'CANCELED' } });
+    const pending = await this.prisma.payment.findMany({ where: { appointmentId, status: 'PENDING' }, select: { id: true } });
+    for (const p of pending) {
+      const claimed = await this.prisma.payment.updateMany({ where: { id: p.id, status: 'PENDING' }, data: { status: 'CANCELED' } });
+      if (claimed.count) await this.cancelAtProvider(p.id);
+    }
+  }
+
+  /**
+   * Cancela a order no Mercado Pago para o QR Code parar de aceitar pagamento (o Pix do MP dura no
+   * mínimo 30 min, às vezes mais que a reserva). Melhor esforço: se falhar, um pagamento tardio
+   * ainda é tratado por markPaid (reativa ou estorna).
+   */
+  private async cancelAtProvider(paymentId: string): Promise<void> {
+    const payment = await this.prisma.payment.findUnique({ where: { id: paymentId }, include: { appointment: { include: { business: true } } } });
+    if (!payment || payment.provider !== 'MERCADO_PAGO' || !payment.providerPaymentId) return;
+    const token = this.accessTokenFor(payment.appointment.business);
+    if (!token) return;
+    try {
+      await this.mp.cancel(token, payment.providerPaymentId, `cancel-${payment.id}`);
+    } catch (error) {
+      this.logger.warn(`Não foi possível cancelar a order ${payment.providerPaymentId} no Mercado Pago: ${(error as Error).message}`);
+    }
   }
 }
