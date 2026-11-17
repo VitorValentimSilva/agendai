@@ -70,5 +70,7 @@ Arquivo vivo: o que já foi feito e o que falta. Atualizado ao fim de cada fase.
 - [x] GitHub Actions: API (lint, tipos, unitários, e2e com Postgres, build) e web (lint, tipos, build) + badge no README
 - [x] Prints regenerados; `PUBLIC_WEB_URL` faz o card "Seu link de agendamento" mostrar o domínio da demo em vez de localhost
 
+- [x] Pix migrado da Payments API (sendo descontinuada) para a Orders API do Mercado Pago
+
 ## Pendências / ideias
 - Ver "Limitações conhecidas e próximos passos" no README.

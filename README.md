@@ -291,7 +291,7 @@ São **dois projetos na Vercel** apontando para o mesmo repositório (um para `a
       - **WhatsApp (Meta for Developers → WhatsApp → Configuration):** webhook `https://SUA-API/webhooks/whatsapp`, token de
         verificação = `WHATSAPP_VERIFY_TOKEN`, assine o campo `messages`. Crie templates de lembrete (6 variáveis: nome, negócio,
         serviço, profissional, data, hora + botões de resposta rápida) e de fila de espera (5 variáveis).
-      - **Mercado Pago (Suas integrações → Webhooks):** URL `https://SUA-API/webhooks/mercadopago`, evento *Pagamentos*;
+      - **Mercado Pago (Suas integrações → Webhooks):** URL `https://SUA-API/webhooks/mercadopago`, evento *Order (Mercado Pago)* (Checkout Transparente via **API de Orders**);
         copie a assinatura secreta para `MP_WEBHOOK_SECRET`. O token do negócio pode ser salvo no painel (Configurações → Pix).
       - **Google Cloud (APIs e serviços):** ative a Google Calendar API, crie um cliente OAuth "Aplicativo da Web" com o
         redirect `https://SUA-API/integrations/google/callback`.

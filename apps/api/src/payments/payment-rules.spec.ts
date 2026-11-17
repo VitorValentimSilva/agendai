@@ -25,6 +25,14 @@ describe('validMercadoPagoSignature', () => {
     expect(validMercadoPagoSignature({ signature: `ts=${ts},v1=${v1}`, requestId: 'req-1', dataId: '123456', secret, now })).toBe(true);
   });
 
+  it('aceita id de order (Orders API) assinado em minúsculas ou como veio', () => {
+    const lower = sign(`id:ord01abc;request-id:req-1;ts:${ts};`);
+    const asIs = sign(`id:ORD01ABC;request-id:req-1;ts:${ts};`);
+    expect(validMercadoPagoSignature({ signature: `ts=${ts},v1=${lower}`, requestId: 'req-1', dataId: 'ORD01ABC', secret, now })).toBe(true);
+    expect(validMercadoPagoSignature({ signature: `ts=${ts},v1=${asIs}`, requestId: 'req-1', dataId: 'ORD01ABC', secret, now })).toBe(true);
+    expect(validMercadoPagoSignature({ signature: `ts=${ts},v1=${asIs}`, requestId: 'req-1', dataId: 'ORD01XYZ', secret, now })).toBe(false);
+  });
+
   it('recusa assinatura errada, sem dados ou antiga (replay)', () => {
     const v1 = sign(`id:123456;request-id:req-1;ts:${ts};`);
     expect(validMercadoPagoSignature({ signature: `ts=${ts},v1=${v1}`, requestId: 'req-2', dataId: '123456', secret, now })).toBe(false);

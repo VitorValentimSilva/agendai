@@ -11,26 +11,39 @@ export interface PixCharge {
 export interface CreatePixInput {
   accessToken: string;
   amountCents: number;
-  description: string;
   payerEmail: string;
   payerFirstName: string;
   externalReference: string;
-  expiresAt: Date;
-  notificationUrl: string | null;
+  /** Validade do Pix no Mercado Pago (mínimo 30 min, exigência da API). */
+  expirationMinutes: number;
   idempotencyKey: string;
 }
 
-/** approved, pending, in_process, rejected, cancelled, refunded, charged_back... */
-export type ProviderPaymentStatus = string;
+/**
+ * Status da order (Orders API): created, action_required, processing, processed, canceled, failed,
+ * refunded, charged_back. status_detail traz o detalhe (ex.: waiting_transfer, accredited, expired).
+ */
+export interface OrderStatus {
+  status: string;
+  statusDetail: string | null;
+  externalReference: string | null;
+}
 
-/** Cliente mínimo da API de pagamentos do Mercado Pago (Pix). */
+const money = (cents: number) => (cents / 100).toFixed(2);
+
+/**
+ * Cliente mínimo da Orders API do Mercado Pago (Checkout Transparente) para Pix.
+ * A Payments API (/v1/payments) está sendo descontinuada; o webhook é configurado no painel
+ * (evento "Order") e as notificações chegam com type=order.
+ */
 @Injectable()
 export class MercadoPagoClient {
   private readonly logger = new Logger(MercadoPagoClient.name);
   private readonly base = 'https://api.mercadopago.com';
 
   async createPix(input: CreatePixInput): Promise<PixCharge> {
-    const res = await fetch(`${this.base}/v1/payments`, {
+    const minutes = Math.min(Math.max(Math.ceil(input.expirationMinutes), 30), 30 * 24 * 60);
+    const res = await fetch(`${this.base}/v1/orders`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${input.accessToken}`,
@@ -38,59 +51,77 @@ export class MercadoPagoClient {
         'X-Idempotency-Key': input.idempotencyKey,
       },
       body: JSON.stringify({
-        transaction_amount: input.amountCents / 100,
-        description: input.description.slice(0, 250),
-        payment_method_id: 'pix',
+        type: 'online',
+        processing_mode: 'automatic',
+        total_amount: money(input.amountCents),
         external_reference: input.externalReference,
-        date_of_expiration: input.expiresAt.toISOString().replace('Z', '-00:00'),
-        ...(input.notificationUrl ? { notification_url: input.notificationUrl } : {}),
         payer: { email: input.payerEmail, first_name: input.payerFirstName },
+        transactions: {
+          payments: [
+            {
+              amount: money(input.amountCents),
+              payment_method: { id: 'pix', type: 'bank_transfer' },
+              expiration_time: `PT${minutes}M`,
+            },
+          ],
+        },
       }),
       signal: AbortSignal.timeout(15_000),
     });
     const data = (await res.json().catch(() => ({}))) as {
-      id?: number;
+      id?: string;
       message?: string;
-      point_of_interaction?: { transaction_data?: { qr_code?: string; qr_code_base64?: string; ticket_url?: string } };
+      errors?: Array<{ message?: string }>;
+      transactions?: { payments?: Array<{ payment_method?: { qr_code?: string; qr_code_base64?: string; ticket_url?: string } }> };
     };
-    const tx = data.point_of_interaction?.transaction_data;
-    if (!res.ok || !data.id || !tx?.qr_code) {
-      this.logger.warn(`Mercado Pago recusou a cobrança: ${data.message ?? res.status}`);
-      throw new Error(`Mercado Pago: ${data.message ?? `HTTP ${res.status}`}`);
+    const pm = data.transactions?.payments?.[0]?.payment_method;
+    if (!res.ok || !data.id || !pm?.qr_code) {
+      const reason = data.errors?.[0]?.message ?? data.message ?? `HTTP ${res.status}`;
+      this.logger.warn(`Mercado Pago recusou a order Pix: ${reason}`);
+      throw new Error(`Mercado Pago: ${reason}`);
     }
     return {
-      providerPaymentId: String(data.id),
-      qrCode: tx.qr_code,
-      qrCodeBase64: tx.qr_code_base64 ?? null,
-      ticketUrl: tx.ticket_url ?? null,
+      providerPaymentId: data.id,
+      qrCode: pm.qr_code,
+      qrCodeBase64: pm.qr_code_base64 ?? null,
+      ticketUrl: pm.ticket_url ?? null,
     };
   }
 
-  async getStatus(accessToken: string, providerPaymentId: string): Promise<{ status: ProviderPaymentStatus; externalReference: string | null }> {
-    const res = await fetch(`${this.base}/v1/payments/${encodeURIComponent(providerPaymentId)}`, {
+  async getStatus(accessToken: string, orderId: string): Promise<OrderStatus> {
+    const res = await fetch(`${this.base}/v1/orders/${encodeURIComponent(orderId)}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       signal: AbortSignal.timeout(10_000),
     });
-    const data = (await res.json().catch(() => ({}))) as { status?: string; external_reference?: string; message?: string };
+    const data = (await res.json().catch(() => ({}))) as {
+      status?: string;
+      status_detail?: string;
+      external_reference?: string;
+      message?: string;
+    };
     if (!res.ok || !data.status) throw new Error(`Mercado Pago: ${data.message ?? `HTTP ${res.status}`}`);
-    return { status: data.status, externalReference: data.external_reference ?? null };
+    return { status: data.status, statusDetail: data.status_detail ?? null, externalReference: data.external_reference ?? null };
   }
 
-  /** Estorno total de um pagamento aprovado (POST /v1/payments/{id}/refunds). */
-  async refund(accessToken: string, providerPaymentId: string, idempotencyKey: string): Promise<void> {
-    const res = await fetch(`${this.base}/v1/payments/${encodeURIComponent(providerPaymentId)}/refunds`, {
+  /** Reembolso total (POST /v1/orders/{id}/refund com body vazio). */
+  async refund(accessToken: string, orderId: string, idempotencyKey: string): Promise<void> {
+    await this.postAction(accessToken, orderId, 'refund', idempotencyKey);
+  }
+
+  /** Cancela uma order ainda não paga (status created/action_required). */
+  async cancel(accessToken: string, orderId: string, idempotencyKey: string): Promise<void> {
+    await this.postAction(accessToken, orderId, 'cancel', idempotencyKey);
+  }
+
+  private async postAction(accessToken: string, orderId: string, action: 'refund' | 'cancel', idempotencyKey: string): Promise<void> {
+    const res = await fetch(`${this.base}/v1/orders/${encodeURIComponent(orderId)}/${action}`, {
       method: 'POST',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-        'X-Idempotency-Key': idempotencyKey,
-      },
-      body: '{}',
+      headers: { Authorization: `Bearer ${accessToken}`, 'X-Idempotency-Key': idempotencyKey },
       signal: AbortSignal.timeout(15_000),
     });
     if (!res.ok) {
-      const data = (await res.json().catch(() => ({}))) as { message?: string };
-      throw new Error(`Mercado Pago (estorno): ${data.message ?? `HTTP ${res.status}`}`);
+      const data = (await res.json().catch(() => ({}))) as { message?: string; errors?: Array<{ message?: string }> };
+      throw new Error(`Mercado Pago (${action === 'refund' ? 'estorno' : 'cancelamento'}): ${data.errors?.[0]?.message ?? data.message ?? `HTTP ${res.status}`}`);
     }
   }
 

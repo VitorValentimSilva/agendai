@@ -39,10 +39,13 @@ export function validMercadoPagoSignature(args: {
   const tsMs = ts.length > 11 ? Number(ts) : Number(ts) * 1000;
   if (!Number.isFinite(tsMs) || Math.abs((args.now ?? new Date()).getTime() - tsMs) > tolerance * 1000) return false;
 
-  const id = /^[a-z0-9]+$/i.test(args.dataId) ? args.dataId.toLowerCase() : args.dataId;
-  let manifest = `id:${id};`;
-  if (args.requestId) manifest += `request-id:${args.requestId};`;
-  manifest += `ts:${ts};`;
-  const expected = createHmac('sha256', args.secret).update(manifest).digest('hex');
-  return safeEqual(v1, expected);
+  // A documentação pede o data.id alfanumérico em minúsculas; ids de order (ORD01...) também são
+  // aceitos como vieram, para não depender de como o Mercado Pago montou a assinatura.
+  const candidates = /^[a-z0-9]+$/i.test(args.dataId) ? [...new Set([args.dataId.toLowerCase(), args.dataId])] : [args.dataId];
+  return candidates.some((id) => {
+    let manifest = `id:${id};`;
+    if (args.requestId) manifest += `request-id:${args.requestId};`;
+    manifest += `ts:${ts};`;
+    return safeEqual(v1, createHmac('sha256', args.secret).update(manifest).digest('hex'));
+  });
 }

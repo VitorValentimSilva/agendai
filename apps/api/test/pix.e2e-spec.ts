@@ -6,11 +6,11 @@ import { encryptSecret } from '../src/common/crypto.js';
 /** Mercado Pago falso: cria cobranças e responde o status que o teste definir. */
 const fakeMp = {
   statuses: new Map<string, { status: string; externalReference: string }>(),
-  created: [] as Array<{ accessToken: string; amountCents: number; externalReference: string }>,
-  async createPix(input: { accessToken: string; amountCents: number; externalReference: string }) {
-    const id = `mp_${fakeMp.created.length + 1}`;
+  created: [] as Array<{ accessToken: string; amountCents: number; externalReference: string; expirationMinutes?: number }>,
+  async createPix(input: { accessToken: string; amountCents: number; externalReference: string; expirationMinutes?: number }) {
+    const id = `ORD01TEST${fakeMp.created.length + 1}`;
     fakeMp.created.push(input);
-    fakeMp.statuses.set(id, { status: 'pending', externalReference: input.externalReference });
+    fakeMp.statuses.set(id, { status: 'action_required', externalReference: input.externalReference });
     return { providerPaymentId: id, qrCode: '000201-PIX-REAL', qrCodeBase64: 'iVBORw0KGgo=', ticketUrl: 'https://mp/ticket' };
   },
   async getStatus(_token: string, id: string) {
@@ -19,6 +19,10 @@ const fakeMp = {
     return s;
   },
   refunds: [] as string[],
+  canceled: [] as string[],
+  async cancel(_token: string, id: string) {
+    fakeMp.canceled.push(id);
+  },
   failRefund: false,
   async refund(_token: string, id: string) {
     if (fakeMp.failRefund) throw new Error('MP fora do ar');
@@ -114,31 +118,31 @@ describe('Pix (e2e)', () => {
     expect(res.body.payment).toMatchObject({ provider: 'MERCADO_PAGO', amountCents: service.priceCents, qrCodeBase64: 'iVBORw0KGgo=' });
     const created = fakeMp.created.at(-1)!;
     expect(created.accessToken).toBe('TEST-TOKEN-NEGOCIO');
-    const providerId = `mp_${fakeMp.created.length}`;
+    const providerId = `ORD01TEST${fakeMp.created.length}`;
 
     // Assinatura inválida
-    await ctx.http().post('/webhooks/mercadopago').query({ 'data.id': providerId, type: 'payment' }).set('x-signature', 'ts=1,v1=00').set('x-request-id', 'r1').send({}).expect(401);
+    await ctx.http().post('/webhooks/mercadopago').query({ 'data.id': providerId, type: 'order' }).set('x-signature', 'ts=1,v1=00').set('x-request-id', 'r1').send({}).expect(401);
 
     // Ainda pendente na API do MP → nada muda
     const pending = await ctx
       .http()
       .post('/webhooks/mercadopago')
-      .query({ 'data.id': providerId, type: 'payment' })
+      .query({ 'data.id': providerId, type: 'order' })
       .set('x-signature', mpSignature(providerId, 'r2'))
       .set('x-request-id', 'r2')
-      .send({ type: 'payment', data: { id: providerId } })
+      .send({ type: 'order', data: { id: providerId } })
       .expect(200);
     expect(pending.body.result).toBe('ignored');
 
     // Aprovado → confirma
-    fakeMp.statuses.set(providerId, { status: 'approved', externalReference: created.externalReference });
+    fakeMp.statuses.set(providerId, { status: 'processed', externalReference: created.externalReference });
     const paid = await ctx
       .http()
       .post('/webhooks/mercadopago')
-      .query({ 'data.id': providerId, type: 'payment' })
+      .query({ 'data.id': providerId, type: 'order' })
       .set('x-signature', mpSignature(providerId, 'r3'))
       .set('x-request-id', 'r3')
-      .send({ type: 'payment', data: { id: providerId } })
+      .send({ type: 'order', data: { id: providerId } })
       .expect(200);
     expect(paid.body.result).toBe('paid');
     const view = await ctx.http().get(`/appointments/manage/${res.body.manageToken}`).expect(200);
@@ -153,25 +157,46 @@ describe('Pix (e2e)', () => {
     expect(JSON.stringify(settings.body)).not.toContain('TEST-TOKEN');
   });
 
+  it('Orders API: cria a order Pix com validade mínima de 30 min, ignora notificação legada e cancela a order se o cliente desistir', async () => {
+    const { res } = await book('Pix Desiste Real', '(19) 96666-7771');
+    const created = fakeMp.created.at(-1)!;
+    expect(created).toMatchObject({ expirationMinutes: 30, externalReference: expect.any(String) });
+    const providerId = `ORD01TEST${fakeMp.created.length}`;
+    // Notificação do tópico antigo (payment) não é processada
+    const legacy = await ctx
+      .http()
+      .post('/webhooks/mercadopago')
+      .query({ 'data.id': providerId, type: 'payment' })
+      .set('x-signature', mpSignature(providerId, 'legacy-1'))
+      .set('x-request-id', 'legacy-1')
+      .send({ type: 'payment', data: { id: providerId } })
+      .expect(200);
+    expect(legacy.body.result).toBe('ignored');
+    await ctx.http().post(`/appointments/manage/${res.body.manageToken}/cancel`).expect(201);
+    expect(fakeMp.canceled).toContain(providerId);
+  });
+
   describe('Pix pago depois de expirar', () => {
     const webhook = (providerId: string, req: string) =>
       ctx
         .http()
         .post('/webhooks/mercadopago')
-        .query({ 'data.id': providerId, type: 'payment' })
+        .query({ 'data.id': providerId, type: 'order' })
         .set('x-signature', mpSignature(providerId, req))
         .set('x-request-id', req)
-        .send({ type: 'payment', data: { id: providerId } })
+        .send({ type: 'order', data: { id: providerId } })
         .expect(200);
 
     async function expiredPix(name: string, phone: string) {
       const { res, slot } = await book(name, phone);
-      const providerId = `mp_${fakeMp.created.length}`;
+      const providerId = `ORD01TEST${fakeMp.created.length}`;
       await ctx.prisma.payment.updateMany({ where: { appointment: { manageToken: res.body.manageToken } }, data: { expiresAt: new Date(Date.now() - 1000) } });
       // Qualquer acesso expira: o agendamento é cancelado e o horário liberado
       const expired = await ctx.http().get(`/appointments/manage/${res.body.manageToken}`).expect(200);
       expect(expired.body.status).toBe('CANCELED');
-      fakeMp.statuses.set(providerId, { status: 'approved', externalReference: fakeMp.created.at(-1)!.externalReference });
+      // A order é cancelada no Mercado Pago para o QR parar de aceitar pagamento
+      expect(fakeMp.canceled).toContain(providerId);
+      fakeMp.statuses.set(providerId, { status: 'processed', externalReference: fakeMp.created.at(-1)!.externalReference });
       return { res, slot, providerId };
     }
 
