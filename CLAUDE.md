@@ -31,7 +31,8 @@ Dois apps independentes, sem workspaces e sem pacote compartilhado — cada um f
 
 ## Módulos da v2 (API)
 - `src/messaging` — WhatsApp Cloud API (`WhatsAppClient`, simulado sem token), lembretes, webhook `/webhooks/whatsapp`.
-- `src/payments` — Pix Mercado Pago (`PaymentsService`), status `PENDING_PAYMENT`, webhook `/webhooks/mercadopago`.
+- `src/payments` — Pix Mercado Pago via **Orders API** (`/v1/orders`, `MercadoPagoClient`), status `PENDING_PAYMENT`,
+  webhook `/webhooks/mercadopago` (type=order). Ao expirar/cancelar, a order é cancelada no MP.
 - `src/waitlist` — fila de espera; `src/reports` — relatórios/CSV; `src/calendar` — feed iCal e Google OAuth.
 - `AppointmentEvents` (`src/appointments/appointment-events.ts`): criar/cancelar/remarcar emite eventos; fila de espera,
   Pix e Google se registram como ouvintes. Use `AppointmentsService.cancel/confirm` (nunca `update` direto de status).

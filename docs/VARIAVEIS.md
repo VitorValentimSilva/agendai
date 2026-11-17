@@ -53,13 +53,14 @@ Não precisa de variável nova: usa o `CRON_SECRET`.
 `MP_ACCESS_TOKEN` e `MP_WEBHOOK_SECRET` (API). Opcional: `ALLOW_SIMULATIONS` (deixe sem definir).
 
 1. **mercadopago.com.br/developers** → **Suas integrações** → **Criar aplicação**
-   (solução *Pagamentos online*, produto **Checkout Transparente / API de Pagamentos**).
+   → solução **Checkout Transparente** → tipo de API **API de Orders** (a API de Payments está sendo descontinuada;
+   o Agendaí usa `/v1/orders`).
 2. A conta precisa ter **chave Pix cadastrada** (app do Mercado Pago → Pix → Minhas chaves).
 3. **Credenciais de produção** → copie o **Access Token** (`APP_USR-…`) → `MP_ACCESS_TOKEN`.
    Para testar antes, use as **credenciais de teste** (`TEST-…`).
 4. Na mesma aplicação → **Webhooks → Configurar notificações**:
    - URL de produção: `https://agendai-five.vercel.app/webhooks/mercadopago`
-   - Evento: **Pagamentos** → **Salvar**
+   - Evento: **Order (Mercado Pago)** → **Salvar**
    - **Assinatura secreta → Revelar** → copie → `MP_WEBHOOK_SECRET`.
 5. Redeploy. No painel do negócio: **Configurações → Cobrança** → escolha *Sinal* ou *Total*.
    Cada negócio pode salvar o **próprio** token ali (fica cifrado); sem ele, usa o `MP_ACCESS_TOKEN` da plataforma.
